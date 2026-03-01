@@ -1,0 +1,3124 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>候选人薪酬测算（价值波动版）</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: #DEF0F9;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 8px 32px rgba(65, 103, 177, 0.15);
+            overflow: hidden;
+        }
+
+        .header {
+            background: #4167B1;
+            color: white;
+            padding: 40px 35px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 0;
+            right: 0;
+            height: 20px;
+            background: #4167B1;
+            filter: blur(10px);
+            opacity: 0.3;
+        }
+
+        .header h1 {
+            font-size: 26px;
+            margin-bottom: 10px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .header p {
+            font-size: 13px;
+            opacity: 0.85;
+            font-weight: 400;
+        }
+
+        .input-section {
+            padding: 35px;
+            background: transparent;
+            border-bottom: 1px solid rgba(65, 103, 177, 0.2);
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #4167B1;
+            margin-bottom: 18px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #E1F2FB;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 18px;
+            margin-bottom: 25px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .grant-stock-type-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .grant-stock-type-group label {
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: #4167B1;
+            font-size: 13px;
+        }
+
+        .grant-stock-type-group select {
+            padding: 11px 14px;
+            border: 1.5px solid #E1F2FB;
+            border-radius: 10px;
+            font-size: 13px;
+            transition: all 0.3s ease;
+            background: white;
+            color: #666;
+        }
+
+        .form-group label {
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: #4167B1;
+            font-size: 13px;
+        }
+
+        .form-group select,
+        .form-group input {
+            padding: 11px 14px;
+            border: 1.5px solid #E1F2FB;
+            border-radius: 10px;
+            font-size: 13px;
+            transition: all 0.3s ease;
+            background: white;
+            color: #666;
+        }
+
+        .form-group select:focus,
+        .form-group input:focus {
+            outline: none;
+            border-color: #4167B1;
+            box-shadow: 0 0 0 3px rgba(65, 103, 177, 0.2);
+        }
+
+        .form-group input::placeholder {
+            color: #C8E6F5;
+        }
+
+        /* 隐藏数字输入框的上下箭头 */
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+
+        .grant-records {
+            margin-top: 20px;
+            padding: 25px;
+            background: white;
+            border-radius: 16px;
+            border: 2px dashed #E1F2FB;
+            box-shadow: 0 2px 8px rgba(65, 103, 177, 0.15);
+        }
+
+        .grant-item {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 12px;
+            padding: 18px;
+            margin-bottom: 15px;
+            background: white;
+            border-radius: 12px;
+            position: relative;
+            border-left: 4px solid #4167B1;
+            box-shadow: 0 2px 6px rgba(65, 103, 177, 0.1);
+        }
+
+        .grant-item .remove-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #4167B1;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 5px 12px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 500;
+        }
+
+        .grant-item .remove-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(65, 103, 177, 0.4);
+        }
+
+        .add-grant-btn {
+            padding: 12px 24px;
+            background: #4167B1;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 12px;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(65, 103, 177, 0.3);
+        }
+
+        .add-grant-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(65, 103, 177, 0.4);
+        }
+
+        .analyze-btn {
+            width: 60%;
+            padding: 14px 40px;
+            background: #4167B1;
+            color: white;
+            border: none;
+            border-radius: 30px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 30px auto 0;
+            box-shadow: 0 4px 16px rgba(65, 103, 177, 0.3);
+            letter-spacing: 0.5px;
+            display: block;
+        }
+
+        .analyze-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(65, 103, 177, 0.4);
+        }
+
+        .result-section {
+            padding: 35px;
+            display: none;
+            background: transparent;
+        }
+
+        .result-section.show {
+            display: block;
+        }
+
+        .result-card {
+            background: white;
+            border: 2px solid #E1F2FB;
+            border-radius: 18px;
+            padding: 28px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 16px rgba(65, 103, 177, 0.15);
+        }
+
+        .result-card h2 {
+            font-size: 19px;
+            color: #4167B1;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+        }
+
+        .result-card h3 {
+            font-size: 15px;
+            color: #4167B1;
+            margin-top: 24px;
+            margin-bottom: 14px;
+            font-weight: 600;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-danger {
+            background: #4167B1;
+            color: white;
+        }
+
+        .badge-success {
+            background: #4167B1;
+            color: white;
+        }
+
+        .badge-warning {
+            background: #E1F2FB;
+            color: white;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            border: 1px solid #DEF0F9;
+        }
+
+        .comparison-table thead th {
+            padding: 14px 20px;
+            background: #4167B1;
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+            text-align: center;
+            border: 1px solid #DEF0F9;
+        }
+
+        .comparison-table thead th:first-child {
+            background: white;
+        }
+
+        .comparison-table tbody td {
+            padding: 14px 20px;
+            border: 1px solid #DEF0F9;
+            font-size: 14px;
+            text-align: center;
+        }
+
+        .comparison-table tbody td:first-child {
+            background: #4167B1;
+            color: white;
+            font-weight: 600;
+            text-align: left;
+            padding: 14px 12px;
+        }
+
+        .comparison-table tbody td:nth-child(2),
+        .comparison-table tbody td:nth-child(3) {
+            background: white;
+            color: #666;
+            font-weight: 700;
+        }
+
+        .comparison-table tbody td:nth-child(4) {
+            text-align: left;
+        }
+
+        .comparison-chart-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 20px;
+        }
+
+        .comparison-chart-column {
+            text-align: center;
+        }
+
+        .comparison-chart-column h4 {
+            font-size: 14px;
+            color: #4167B1;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin: 18px 0;
+        }
+
+        .metric {
+            background: #F5FAFD;
+            padding: 20px;
+            border-radius: 14px;
+            border-left: 4px solid #4167B1;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(65, 103, 177, 0.12);
+        }
+
+        .metric:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 6px 16px rgba(65, 103, 177, 0.18);
+        }
+
+        .metric-label {
+            font-size: 12px;
+            color: #4167B1;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .metric-value {
+            font-size: 22px;
+            font-weight: 700;
+            color: #4167B1;
+            letter-spacing: -0.5px;
+        }
+
+        .package-chart {
+            display: flex;
+            gap: 30px;
+            align-items: center;
+            margin: 24px 0;
+            padding: 28px;
+            background: #F5FAFD;
+            border-radius: 16px;
+            border: 1px solid #E1F2FB;
+            box-shadow: 0 2px 12px rgba(65, 103, 177, 0.15);
+        }
+
+        .chart-bar {
+            flex: 1;
+            height: 80px;
+            display: flex;
+            border-radius: 14px;
+            overflow: hidden;
+            box-shadow: 0 4px 16px rgba(65, 103, 177, 0.2);
+        }
+
+        .chart-segment {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 15px;
+            transition: all 0.3s ease;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .chart-segment:hover {
+            opacity: 0.9;
+            cursor: pointer;
+        }
+
+        .chart-legend {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 13px;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .legend-color {
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .grant-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 18px 0;
+            font-size: 13px;
+            border: 1px solid #DEF0F9;
+        }
+
+        .grant-table th,
+        .grant-table td {
+            padding: 12px 14px;
+            text-align: center;
+            border: 1px solid #DEF0F9;
+        }
+
+        .grant-table thead th {
+            background: #4167B1;
+            font-weight: 600;
+            color: white;
+            font-size: 13px;
+        }
+
+        .grant-table tbody td {
+            background: white;
+            color: #666;
+        }
+
+        .grant-table tbody td.highlight-green {
+            background: #DEF0F9;
+            color: #4167B1;
+            font-weight: 600;
+        }
+
+        .grant-table tbody td.highlight-gray {
+            background: #F8F8F8;
+            color: #BDBDBD;
+        }
+
+        .grant-table tbody td.highlight-red {
+            color: #FF6090;
+            font-weight: 600;
+        }
+
+        .grant-table th.section-divider {
+            border-left: 3px solid #4167B1;
+        }
+
+        .grant-table td.section-divider {
+            border-left: 3px solid #4167B1;
+        }
+
+        .advice-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .advice-list li {
+            padding: 14px 20px;
+            margin: 12px 0;
+            background: #F5FAFD;
+            border-radius: 12px;
+            border-left: 4px solid #4167B1;
+            color: #666;
+            line-height: 1.7;
+            font-size: 13px;
+            box-shadow: 0 2px 6px rgba(65, 103, 177, 0.12);
+        }
+
+        .advice-list li strong {
+            color: #FF6090;
+        }
+
+        .timeline {
+            position: relative;
+            padding-left: 35px;
+            margin: 20px 0;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 12px;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: #4167B1;
+            border-radius: 2px;
+        }
+
+        .timeline-item {
+            position: relative;
+            padding: 14px 0;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -29px;
+            top: 20px;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #4167B1;
+            box-shadow: 0 0 0 4px white, 0 0 0 6px #DEF0F9;
+        }
+
+        .quote {
+            background: #F5FAFD;
+            border-left: 4px solid #4167B1;
+            padding: 20px;
+            margin: 18px 0;
+            font-style: italic;
+            color: #666;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(65, 103, 177, 0.12);
+            line-height: 1.7;
+        }
+
+        .tactic-section {
+            background: linear-gradient(135deg, #F5FAFD 0%, #E8F4FA 100%);
+            border: 2px solid #E1F2FB;
+            border-radius: 14px;
+            padding: 22px;
+            margin: 18px 0;
+            box-shadow: 0 2px 8px rgba(65, 103, 177, 0.1);
+        }
+
+        .tactic-section h4 {
+            color: #4167B1;
+            margin-bottom: 14px;
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .tactic-section p {
+            margin: 10px 0;
+            color: #666;
+            line-height: 1.7;
+            font-size: 13px;
+        }
+
+        .tactic-section strong {
+            color: #FF6090;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌸 候选人薪酬测算（价值波动版）</h1>
+            <p>基于历史股票/期权数据分析人选心理</p>
+        </div>
+
+        <div class="input-section">
+            <div class="section-title">📋 基本信息</div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <div style="padding: 10px; background: white; border: 1px solid #DEF0F9; border-radius: 8px;">
+                        <div style="color: #4167B1; font-weight: 600; margin-bottom: 3px;">
+                            <script>
+                                document.write((function() {
+                                    const today = new Date();
+                                    const year = today.getFullYear();
+                                    const month = String(today.getMonth() + 1).padStart(2, '0');
+                                    const day = String(today.getDate()).padStart(2, '0');
+                                    return `测算日期：${year}年${month}月${day}日`;
+                                })());
+                            </script>
+                        </div>
+                        <div style="font-size: 10px; color: #999; margin-bottom: 8px; line-height: 1.4;">
+                            <script>
+                                document.write((function() {
+                                    const today = new Date();
+                                    // 计算上月最后一天
+                                    const lastDayOfPrevMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+                                    const year = lastDayOfPrevMonth.getFullYear();
+                                    const month = lastDayOfPrevMonth.getMonth() + 1;
+                                    const day = lastDayOfPrevMonth.getDate();
+                                    return `💡 汇率按上月最后一天计算，即${year}年${month}月${day}日`;
+                                })());
+                            </script>
+                        </div>
+                        <div id="exchangeRateDisplay" style="font-size: 11px; color: #4167B1; line-height: 1.6;">
+                            <span style="color: #999;">正在获取汇率...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>公司 *</label>
+                    <select id="company">
+                        <option value="">-- 选择公司 --</option>
+                        <optgroup label="上市公司">
+                            <option value="alibaba">阿里巴巴</option>
+                            <option value="tencent">腾讯</option>
+                            <option value="kuaishou">快手</option>
+                            <option value="baidu">百度</option>
+                            <option value="jd">京东</option>
+                            <option value="meituan">美团</option>
+                            <option value="pdd">拼多多</option>
+                        </optgroup>
+                        <optgroup label="未上市公司">
+                            <option value="bytedance">字节跳动</option>
+                            <option value="xiaohongshu">小红书</option>
+                            <option value="ant">蚂蚁金服</option>
+                            <option value="dewu">得物</option>
+                        </optgroup>
+                    </select>
+                    <div id="priceStatus" style="margin-top: 8px; font-size: 11px; color: #4167B1; padding: 8px; background: white; border: 1px solid #DEF0F9; border-radius: 8px;">
+                        选择公司后自动获取股价均值（180个自然日，即120个交易日）
+                    </div>
+                    <div id="manualInputDiv" style="margin-top: 8px;">
+                        <div style="font-size: 11px; color: #666; margin-bottom: 4px;">或手动输入股价：</div>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="number" id="manualPrice" placeholder="手动输入（原币）" style="flex: 2; padding: 8px; border: 1.5px solid #E1F2FB; border-radius: 8px; font-size: 12px;" step="0.01">
+                            <button class="add-grant-btn" style="flex: 1; font-size: 11px; padding: 6px;" onclick="useManualPrice()">
+                                确认
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>入职年月 *</label>
+                    <div style="display: flex; gap: 10px;">
+                        <select id="joinYear" style="flex: 1;">
+                            <option value="">年份</option>
+                        </select>
+                        <select id="joinMonth" style="flex: 1;">
+                            <option value="">月份</option>
+                            <option value="01">1月</option>
+                            <option value="02">2月</option>
+                            <option value="03">3月</option>
+                            <option value="04">4月</option>
+                            <option value="05">5月</option>
+                            <option value="06">6月</option>
+                            <option value="07">7月</option>
+                            <option value="08">8月</option>
+                            <option value="09">9月</option>
+                            <option value="10">10月</option>
+                            <option value="11">11月</option>
+                            <option value="12">12月</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-title" style="margin-top: 30px;">💰 基本薪资</div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>月薪 Base（元/月）</label>
+                    <input type="number" id="baseSalary" placeholder="如：70600" oninput="autoCalculateTargetBonus()">
+                </div>
+
+                <div class="form-group">
+                    <label>目标年终奖（元）</label>
+                    <input type="number" id="targetBonus" placeholder="如：462700">
+                    <div style="margin-top: 8px; display: flex; gap: 8px; align-items: center;">
+                        <span style="font-size: 11px; color: #999;">月数</span>
+                        <input type="number" id="bonusMonths" placeholder="3" step="0.5" oninput="autoCalculateTargetBonus()" style="width: 80px; padding: 6px; border: 1.5px solid #E1F2FB; border-radius: 6px; font-size: 12px;">
+                        <span style="font-size: 11px; color: #4167B1;" id="autoCalcResult"></span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>实发年终奖（元）</label>
+                    <input type="number" id="actualBonus" placeholder="如：462700">
+                </div>
+
+                <div class="form-group">
+                    <label>其他现金收入（元/年）</label>
+                    <input type="number" id="otherCash" placeholder="如：50000">
+                </div>
+            </div>
+
+            <div class="section-title" style="margin-top: 30px;">📈 激励部分（支持多次授予）</div>
+            <div style="font-size: 11px; color: #666; background: #F5FAFD; padding: 10px 15px; border-radius: 8px; margin-bottom: 15px; line-height: 1.6;">
+                💡 <strong>填写说明：</strong><br>
+                • 期权/RSU/年终奖转股：<span style="color: #4167B1;">授予数量填写股数</span>（如：10000）<br>
+                • 长期现金激励：<span style="color: #4167B1;">授予数量填写金额</span>（单位：元，如：1000000）
+            </div>
+            <div class="grant-records" id="grantRecords">
+                <div class="grant-item">
+                    <div class="form-group">
+                        <label>授予日期</label>
+                        <div style="display: flex; gap: 8px;">
+                            <select class="grant-year" style="flex: 1;">
+                                <option value="">年</option>
+                            </select>
+                            <select class="grant-month" style="flex: 1;">
+                                <option value="">月</option>
+                                <option value="01">1月</option>
+                                <option value="02">2月</option>
+                                <option value="03">3月</option>
+                                <option value="04">4月</option>
+                                <option value="05">5月</option>
+                                <option value="06">6月</option>
+                                <option value="07">7月</option>
+                                <option value="08">8月</option>
+                                <option value="09">9月</option>
+                                <option value="10">10月</option>
+                                <option value="11">11月</option>
+                                <option value="12">12月</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>授予数量</label>
+                        <input type="number" class="grant-amount" placeholder="28000">
+                    </div>
+                    <div class="form-group">
+                        <label>归属周期（年）</label>
+                        <input type="number" class="grant-vesting" placeholder="4" value="4">
+                    </div>
+                    <div class="form-group">
+                        <label>行权价</label>
+                        <input type="number" class="grant-price" placeholder="0.8" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label>类型</label>
+                        <select class="grant-type">
+                            <option value="option">期权</option>
+                            <option value="rsu">RSU</option>
+                            <option value="bonus">年终奖转股</option>
+                            <option value="lti">长期现金激励</option>
+                        </select>
+                    </div>
+                    <div class="form-group grant-stock-type-group" style="display: none;">
+                        <label>股票类型</label>
+                        <select class="grant-stock-type" onchange="onStockTypeChange(this)">
+                            <option value="regular">常规股票</option>
+                            <option value="doubao">豆包虚拟股</option>
+                        </select>
+                    </div>
+                    <div class="form-group grant-market-group" style="display: none;">
+                        <label>市场</label>
+                        <select class="grant-market">
+                            <option value="us">美股</option>
+                            <option value="hk">港股</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <button class="add-grant-btn" onclick="addGrantRecord()">➕ 添加授予记录</button>
+
+            <button class="analyze-btn" onclick="analyze()">🔍 开始分析</button>
+        </div>
+
+        <div class="result-section" id="resultSection">
+            <div id="results"></div>
+        </div>
+    </div>
+
+    <script>
+        let grantRecordCount = 1;
+
+        // 格式化金额：整数不显示小数点，有小数才显示，都带千位分隔符
+        function formatAmount(num) {
+            if (num === Math.floor(num)) {
+                return num.toLocaleString();
+            }
+            return num.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        }
+
+        // 股票代码映射
+        const stockCodeMap = {
+            alibaba: { symbol: 'BABA', market: 'us', hkSymbol: '9988.HK' },
+            tencent: { symbol: '0700.HK', market: 'hk' },
+            kuaishou: { symbol: '1024.HK', market: 'hk' },
+            baidu: { symbol: 'BIDU', market: 'us', hkSymbol: '9888.HK' },
+            jd: { symbol: 'JD', market: 'us', hkSymbol: '9618.HK' },
+            meituan: { symbol: '3690.HK', market: 'hk' },
+            pdd: { symbol: 'PDD', market: 'us' }
+        };
+
+        // 自动计算目标年终奖
+        function autoCalculateTargetBonus() {
+            const baseSalary = parseFloat(document.getElementById('baseSalary').value) || 0;
+            const months = parseFloat(document.getElementById('bonusMonths').value) || 0;
+            const resultSpan = document.getElementById('autoCalcResult');
+
+            if (baseSalary > 0 && months > 0) {
+                const result = baseSalary * months;
+                document.getElementById('targetBonus').value = result.toFixed(2);
+                resultSpan.textContent = `= ¥${result.toFixed(2)}`;
+            } else if (months > 0 && baseSalary === 0) {
+                resultSpan.textContent = '请先填写基本月薪';
+                resultSpan.style.color = '#F57C00';
+            } else {
+                document.getElementById('targetBonus').value = '';
+                resultSpan.textContent = '';
+            }
+        }
+
+        // 生成年份选项
+        function generateYearOptions(includeCalcYears = false) {
+            let options = '';
+            const startYear = 2014;
+            const endYear = includeCalcYears ? 2030 : 2026;
+            for (let year = startYear; year <= endYear; year++) {
+                options += `<option value="${year}">${year}年</option>`;
+            }
+            return options;
+        }
+
+        // 生成日期选项
+        function generateDayOptions() {
+            let options = '';
+            for (let day = 1; day <= 31; day++) {
+                const dayStr = day.toString().padStart(2, '0');
+                options += `<option value="${dayStr}">${day}日</option>`;
+            }
+            return options;
+        }
+
+        // 获取当前测算日期
+        function getCurrentCalcDate() {
+            const today = new Date();
+            return today;
+        }
+
+        // 初始化年份下拉框
+        function initYearSelects() {
+            console.log('开始初始化...');
+            const yearOptions = generateYearOptions();
+
+            // 显示测算日期（当前日期）
+            const today = getCurrentCalcDate();
+            const calcDateDisplay = document.getElementById('calcDateDisplay');
+            console.log('calcDateDisplay元素:', calcDateDisplay);
+
+            if (calcDateDisplay) {
+                const year = today.getFullYear();
+                const month = String(today.getMonth() + 1).padStart(2, '0');
+                const day = String(today.getDate()).padStart(2, '0');
+                const dateText = `📅 ${year}年${month}月${day}日`;
+                calcDateDisplay.innerHTML = dateText;
+                console.log('测算日期已设置:', dateText);
+            } else {
+                console.error('找不到calcDateDisplay元素');
+            }
+
+            // 初始化入职年份
+            const joinYearSelect = document.getElementById('joinYear');
+            if (joinYearSelect) {
+                joinYearSelect.innerHTML = '<option value="">年份</option>' + yearOptions;
+            }
+
+            // 初始化所有授予记录的年份
+            const grantYearSelects = document.querySelectorAll('.grant-year');
+            grantYearSelects.forEach(select => {
+                select.innerHTML = '<option value="">年</option>' + yearOptions;
+            });
+            console.log('初始化完成');
+        }
+
+        // 当前使用的汇率
+        let exchangeRates = {
+            USD_CNY: 7.25,  // 默认汇率
+            HKD_CNY: 0.93,
+            rateDate: null,  // 汇率基准日期
+            lastUpdate: null,
+            isFromAPI: false  // 标记是否从API获取
+        };
+
+        // 自动从API获取上月最后一天的汇率
+        async function fetchHistoricalExchangeRates(calcDate) {
+            // 使用固定汇率（2026年3月最新汇率），避免API调用延迟
+            exchangeRates.USD_CNY = 7.25;
+            exchangeRates.HKD_CNY = 0.93;
+            exchangeRates.RMB_CNY = 1;
+
+            console.log('✅ 使用预设汇率: USD=7.25, HKD=0.93');
+
+            // 异步更新汇率（不阻塞页面）
+            fetchHistoricalExchangeRatesAsync(calcDate);
+        }
+
+        async function fetchHistoricalExchangeRatesAsync(calcDate) {
+            // 计算上月最后一天
+            const lastDayOfPrevMonth = new Date(calcDate.getFullYear(), calcDate.getMonth(), 0);
+            const year = lastDayOfPrevMonth.getFullYear();
+            const month = String(lastDayOfPrevMonth.getMonth() + 1).padStart(2, '0');
+            const day = String(lastDayOfPrevMonth.getDate()).padStart(2, '0');
+            const dateStr = `${year}-${month}-${day}`;
+            const dateDisplayStr = `${year}年${parseInt(month)}月${parseInt(day)}日`;
+
+            try {
+                // 尝试方案1: Frankfurter API (欧洲央行数据，免费无限制)
+                let usdRate = null;
+                let hkdRate = null;
+
+                try {
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 3000);
+                    const response1 = await fetch(`https://api.frankfurter.app/${dateStr}?to=CNY&from=USD,HKD`, { signal: controller.signal });
+                    clearTimeout(timeoutId);
+                    if (response1.ok) {
+                        const data1 = await response1.json();
+                        if (data1.rates && data1.rates.CNY) {
+                            // 返回的是 1 USD/HKD = X CNY
+                            usdRate = data1.rates.CNY;
+                            console.log('✅ Frankfurter API获取美元汇率成功:', usdRate);
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Frankfurter API失败:', e.message);
+                }
+
+                // 尝试方案2: ExchangeRate-API (备用方案)
+                if (!usdRate) {
+                    try {
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 3000);
+                        const response2 = await fetch(`https://open.er-api.com/v6/latest/USD`, { signal: controller.signal });
+                        clearTimeout(timeoutId);
+                        if (response2.ok) {
+                            const data2 = await response2.json();
+                            if (data2.rates && data2.rates.CNY && data2.rates.HKD) {
+                                // 返回的是 1 USD = X CNY, 1 USD = X HKD
+                                usdRate = data2.rates.CNY;
+                                // 需要计算 1 HKD = ? CNY
+                                hkdRate = (data2.rates.CNY / data2.rates.HKD).toFixed(2);
+                                console.log('✅ ExchangeRate-API获取汇率成功: USD=', usdRate, 'HKD=', hkdRate);
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('ExchangeRate-API失败:', e.message);
+                    }
+                }
+
+                // 港币单独获取（如果还没获取到）
+                if (!hkdRate && usdRate) {
+                    try {
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 3000);
+                        const response3 = await fetch(`https://api.frankfurter.app/${dateStr}?to=CNY&from=HKD`, { signal: controller.signal });
+                        clearTimeout(timeoutId);
+                        if (response3.ok) {
+                            const data3 = await response3.json();
+                            if (data3.rates && data3.rates.CNY) {
+                                hkdRate = data3.rates.CNY;
+                                console.log('✅ Frankfurter API获取港币汇率成功:', hkdRate);
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('港币汇率获取失败:', e.message);
+                    }
+                }
+
+                if (usdRate && hkdRate) {
+                    exchangeRates.USD_CNY = parseFloat(parseFloat(usdRate).toFixed(2));
+                    exchangeRates.HKD_CNY = parseFloat(parseFloat(hkdRate).toFixed(2));
+                    exchangeRates.rateDate = dateDisplayStr;
+                    exchangeRates.lastUpdate = new Date();
+                    exchangeRates.isFromAPI = true;
+
+                    console.log(`✅ 自动获取汇率成功：${dateDisplayStr} 美元=${exchangeRates.USD_CNY} 港币=${exchangeRates.HKD_CNY}`);
+
+                    // 更新页面显示
+                    updateExchangeRateDisplay();
+
+                    return true;
+                } else {
+                    throw new Error('所有API尝试均失败');
+                }
+            } catch (error) {
+                console.warn('⚠️ 自动获取汇率失败，使用默认值:', error.message);
+                exchangeRates.rateDate = dateDisplayStr;
+                exchangeRates.isFromAPI = false;
+
+                // 更新页面显示（显示默认值）
+                updateExchangeRateDisplay();
+
+                return false;
+            }
+        }
+
+        // 更新页面汇率显示
+        function updateExchangeRateDisplay() {
+            const display = document.getElementById('exchangeRateDisplay');
+            if (display) {
+                const statusIcon = exchangeRates.isFromAPI ? '✅' : '⚠️';
+                const statusText = exchangeRates.isFromAPI ? '' : '<br><span style="color: #FF6090; font-size: 10px;">（API获取失败，使用默认值）</span>';
+
+                display.innerHTML = `${statusIcon} 美元汇率：${exchangeRates.USD_CNY}<br><span style="display: inline-block; width: 1.5em;">&nbsp;</span>港币汇率：${exchangeRates.HKD_CNY}${statusText}`;
+            }
+        }
+
+        // 计算上个月最后一天
+        function getLastDayOfPreviousMonth(calcDate) {
+            const date = new Date(calcDate);
+            // 设置为当月1号
+            date.setDate(1);
+            // 减一天就是上个月最后一天
+            date.setDate(0);
+            return date;
+        }
+
+        // 使用手动输入的股价
+        function useManualPrice() {
+            const company = document.getElementById('company').value;
+            const manualPrice = parseFloat(document.getElementById('manualPrice').value);
+            const priceStatus = document.getElementById('priceStatus');
+
+            if (!company) {
+                alert('请先选择公司');
+                return;
+            }
+
+            if (!manualPrice || manualPrice <= 0) {
+                alert('请输入有效的股价');
+                return;
+            }
+
+            const stockInfo = stockCodeMap[company];
+            if (!stockInfo) {
+                // 非上市公司
+                const data = companyData[company];
+                const currency = data.grantPrice?.[0]?.currency || 'USD';
+                const rate = currency === 'USD' ? exchangeRates.USD_CNY : exchangeRates.HKD_CNY;
+                const priceCNY = (manualPrice * rate).toFixed(2);
+
+                if (data.currentBuyback) {
+                    if (typeof data.currentBuyback === 'object') {
+                        data.currentBuyback.employed = manualPrice;
+                    } else {
+                        data.currentBuyback = manualPrice;
+                    }
+                }
+
+                priceStatus.innerHTML = `✅ 已设置：<strong>${manualPrice.toFixed(2)} ${currency}</strong> ≈ <strong>¥${priceCNY}</strong>`;
+                priceStatus.style.color = '#4167B1';
+            } else {
+                // 上市公司
+                const currency = stockInfo.market === 'us' ? 'USD' : 'HKD';
+                const rate = currency === 'USD' ? exchangeRates.USD_CNY : exchangeRates.HKD_CNY;
+                const priceCNY = (manualPrice * rate).toFixed(2);
+
+                if (stockInfo.market === 'us') {
+                    companyData[company].currentPrice.us = manualPrice;
+                    companyData[company].currentPrice.cny = parseFloat(priceCNY);
+                } else {
+                    companyData[company].currentPrice.hk = manualPrice;
+                    companyData[company].currentPrice.cny = parseFloat(priceCNY);
+                }
+
+                priceStatus.innerHTML = `✅ 已设置：<strong>${manualPrice.toFixed(2)} ${currency}</strong> ≈ <strong>¥${priceCNY}</strong>`;
+                priceStatus.style.color = '#4167B1';
+            }
+        }
+
+        // 公司选择变化时的处理
+        async function onCompanyChange() {
+            try {
+                const companySelect = document.getElementById('company');
+                const priceStatus = document.getElementById('priceStatus');
+                const manualInputDiv = document.getElementById('manualInputDiv');
+
+                const company = companySelect.value;
+
+                // 更新授予记录的市场选择显隐
+                updateGrantMarketVisibility();
+
+                const isPublic = stockCodeMap[company] !== undefined;
+
+                if (!company) {
+                    priceStatus.innerHTML = '选择公司后自动获取股价均值（180个自然日，即120个交易日）';
+                    return;
+                }
+
+                // 使用当前日期作为测算日期
+                const calcDate = getCurrentCalcDate();
+
+                // 加载当前月份的固定汇率（不等待，立即使用预设汇率）
+                fetchHistoricalExchangeRates(calcDate);
+
+                if (isPublic) {
+                    priceStatus.innerHTML = '⏳ 正在自动获取股价均值（180个自然日，即120个交易日）...';
+                    priceStatus.style.color = '#4167B1';
+
+                    // 自动获取股价
+                    await fetchRealTimePrice();
+                } else {
+
+                    // 非上市公司，显示当前回购价
+                    const data = companyData[company];
+                    const price = data.currentBuyback?.employed || data.currentBuyback || 0;
+                    const currency = data.grantPrice?.[0]?.currency || 'USD';
+                    const rate = currency === 'USD' ? exchangeRates.USD_CNY : exchangeRates.HKD_CNY;
+                    const priceCNY = (price * rate).toFixed(2);
+
+                    priceStatus.innerHTML = `💰 当前回购价：<strong>${price.toFixed(2)} ${currency}</strong> ≈ <strong>¥${priceCNY}</strong>`;
+                    priceStatus.style.color = '#4167B1';
+                }
+            } catch (error) {
+            }
+        }
+
+        // 获取股价均值（测算日前一天往前推180个自然日，即约120个交易日）
+        async function fetchRealTimePrice() {
+            const companySelect = document.getElementById('company');
+            const company = companySelect.value;
+            const priceStatus = document.getElementById('priceStatus');
+            const manualInputDiv = document.getElementById('manualInputDiv');
+
+
+            if (!company || !stockCodeMap[company]) {
+                return;
+            }
+
+            // 使用当前日期作为测算日期
+            const calcDate = getCurrentCalcDate();
+            const year = calcDate.getFullYear();
+            const month = String(calcDate.getMonth() + 1).padStart(2, '0');
+            const day = String(calcDate.getDate()).padStart(2, '0');
+
+            // T1 = 查询日前一天
+            const t1 = new Date(calcDate);
+            t1.setDate(t1.getDate() - 1);
+
+            // 检查缓存（当天同一个公司的股价）
+            const cacheKey = `stockPrice_${company}_${year}-${month}-${day}`;
+            const cached = localStorage.getItem(cacheKey);
+            if (cached) {
+                try {
+                    const cacheData = JSON.parse(cached);
+                    const cacheTime = new Date(cacheData.timestamp);
+                    const now = new Date();
+                    // 缓存6小时内有效
+                    if (now - cacheTime < 6 * 60 * 60 * 1000) {
+                        priceStatus.innerHTML = cacheData.html;
+                        priceStatus.style.color = '#4167B1';
+                        console.log('✅ 使用缓存股价:', company);
+                        return;
+                    }
+                } catch (e) {
+                    console.warn('缓存解析失败:', e);
+                }
+            }
+
+            priceStatus.innerHTML = '⏳ 正在自动获取股价均值（180个自然日，即120个交易日）... <button onclick="this.parentElement.innerHTML=\'❌ 已取消自动获取\'; document.getElementById(\'manualInputDiv\').style.display=\'block\'; throw new Error(\'用户取消\');" style="margin-left: 10px; padding: 4px 10px; background: #999; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;">跳过</button>';
+            priceStatus.style.color = '#FF9FB2';
+            manualInputDiv.style.display = 'none';
+
+            try {
+                const stockInfo = stockCodeMap[company];
+                const symbol = stockInfo.symbol;
+                const currency = stockInfo.market === 'us' ? 'USD' : 'HKD';
+
+
+                // 计算需要获取的日期范围：180个自然日
+                const t1Timestamp = Math.floor(t1.getTime() / 1000);
+                const t2Approx = new Date(t1);
+                t2Approx.setDate(t2Approx.getDate() - 180);
+                const t2Timestamp = Math.floor(t2Approx.getTime() / 1000);
+
+
+                let last120 = [];
+
+                // 检测是否在Netlify环境（有后端函数）
+                const hasBackend = window.location.hostname.includes('netlify.app') || window.location.hostname.includes('localhost');
+                const proxyUrl = hasBackend ? '/.netlify/functions/proxy?url=' : '';
+
+                // 并行调用所有API，谁最快响应就用谁
+                const apiMethods = [
+                    // 方法1: Yahoo Finance query1（通过后端代理或直连）
+                    (async () => {
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 8000);
+                        try {
+                            const apiUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?period1=${t2Timestamp}&period2=${t1Timestamp}&interval=1d`;
+                            const fetchUrl = hasBackend ? proxyUrl + encodeURIComponent(apiUrl) : apiUrl;
+                            const response = await fetch(fetchUrl, { signal: controller.signal });
+                            clearTimeout(timeoutId);
+                            const data = await response.json();
+                            if (data.chart?.result?.[0]) {
+                                const closePrices = data.chart.result[0].indicators.quote[0].close.filter(p => p !== null && !isNaN(p));
+                                if (closePrices.length > 0) return { success: true, data: closePrices.slice(-120), method: hasBackend ? 'Yahoo1(后端)' : 'Yahoo1(直连)' };
+                            }
+                        } catch (e) {
+                            clearTimeout(timeoutId);
+                        }
+                        return { success: false, method: 'Yahoo1' };
+                    })(),
+
+                    // 方法2: Yahoo Finance query2（通过后端代理或直连）
+                    (async () => {
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 8000);
+                        try {
+                            const apiUrl = `https://query2.finance.yahoo.com/v8/finance/chart/${symbol}?period1=${t2Timestamp}&period2=${t1Timestamp}&interval=1d`;
+                            const fetchUrl = hasBackend ? proxyUrl + encodeURIComponent(apiUrl) : apiUrl;
+                            const response = await fetch(fetchUrl, { signal: controller.signal });
+                            clearTimeout(timeoutId);
+                            const data = await response.json();
+                            if (data.chart?.result?.[0]) {
+                                const closePrices = data.chart.result[0].indicators.quote[0].close.filter(p => p !== null && !isNaN(p));
+                                if (closePrices.length > 0) return { success: true, data: closePrices.slice(-120), method: hasBackend ? 'Yahoo2(后端)' : 'Yahoo2(直连)' };
+                            }
+                        } catch (e) {
+                            clearTimeout(timeoutId);
+                        }
+                        return { success: false, method: 'Yahoo2' };
+                    })(),
+
+                    // 方法3: 新浪财经（通过后端代理或直连）
+                    (async () => {
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 8000);
+                        try {
+                            let sinaSymbol;
+                            if (stockInfo.market === 'us') {
+                                sinaSymbol = `gb_${symbol.toLowerCase().replace('.', '')}`;
+                            } else {
+                                const hkCode = symbol.replace('.HK', '').padStart(5, '0');
+                                sinaSymbol = `rt_hk${hkCode}`;
+                            }
+                            const apiUrl = `https://quotes.sina.cn/cn/api/json_v2.php/CN_MarketDataService.getKLineData?symbol=${sinaSymbol}&scale=240&ma=no&datalen=1000`;
+                            const fetchUrl = hasBackend ? proxyUrl + encodeURIComponent(apiUrl) : apiUrl;
+                            const response = await fetch(fetchUrl, { signal: controller.signal });
+                            clearTimeout(timeoutId);
+                            const data = await response.json();
+                            if (data && Array.isArray(data) && data.length > 0) {
+                                const closePrices = data.map(d => parseFloat(d.close)).filter(p => !isNaN(p));
+                                if (closePrices.length > 0) return { success: true, data: closePrices.slice(-120), method: hasBackend ? '新浪(后端)' : '新浪(直连)' };
+                            }
+                        } catch (e) {
+                            clearTimeout(timeoutId);
+                        }
+                        return { success: false, method: '新浪' };
+                    })()
+                ];
+
+                // 并行竞速：谁先成功就用谁
+                const startTime = Date.now();
+
+                // 使用 Promise.race 找到第一个成功的
+                const raceForSuccess = async () => {
+                    return new Promise((resolve, reject) => {
+                        let completedCount = 0;
+                        const totalMethods = apiMethods.length;
+
+                        apiMethods.forEach(promise => {
+                            promise.then(result => {
+                                if (result.success) {
+                                    // 第一个成功的立即返回
+                                    resolve(result);
+                                } else {
+                                    completedCount++;
+                                    // 所有都失败了才reject
+                                    if (completedCount === totalMethods) {
+                                        reject(new Error('所有API获取均失败'));
+                                    }
+                                }
+                            }).catch(() => {
+                                completedCount++;
+                                if (completedCount === totalMethods) {
+                                    reject(new Error('所有API获取均失败'));
+                                }
+                            });
+                        });
+                    });
+                };
+
+                const successResult = await raceForSuccess();
+                const totalTime = ((Date.now() - startTime) / 1000).toFixed(1);
+                console.log(`✅ ${successResult.method} 获取成功 (耗时${totalTime}秒)`);
+
+                last120 = successResult.data;
+                if (last120.length === 0) {
+                    throw new Error('没有找到有效的交易数据');
+                }
+
+                // 计算均价（180个自然日，约120个交易日）
+                const avgPrice = last120.reduce((sum, p) => sum + p, 0) / last120.length;
+                const avgPriceRounded = avgPrice.toFixed(2);
+
+
+                // 获取汇率
+                const rate = currency === 'USD' ? exchangeRates.USD_CNY : exchangeRates.HKD_CNY;
+                const priceCNY = (avgPrice * rate).toFixed(2);
+
+
+                // 更新companyData
+                if (stockInfo.market === 'us') {
+                    companyData[company].currentPrice.us = parseFloat(avgPriceRounded);
+                    companyData[company].currentPrice.cny = parseFloat(priceCNY);
+                    // 注释掉港股获取，避免速度慢
+                    // if (stockInfo.hkSymbol) {
+                    //     await fetchHKPrice(company, stockInfo.hkSymbol, calcDate);
+                    // }
+                } else {
+                    companyData[company].currentPrice.hk = parseFloat(avgPriceRounded);
+                    companyData[company].currentPrice.cny = parseFloat(priceCNY);
+                }
+
+                const t2Actual = new Date(t1);
+                t2Actual.setDate(t2Actual.getDate() - (last120.length - 1));
+                const t2ActualStr = `${t2Actual.getFullYear()}.${t2Actual.getMonth() + 1}.${t2Actual.getDate()}`;
+                const t1DisplayStr = `${t1.getFullYear()}.${t1.getMonth() + 1}.${t1.getDate()}`;
+
+
+                const successHTML = `✅ 股价均值（180个自然日）：<strong>${avgPriceRounded} ${currency}</strong> ≈ <strong>¥${priceCNY}</strong><br><span style="font-size: 10px; color: #999;">期间: ${t2ActualStr}~${t1DisplayStr} (${last120.length}个交易日) | <a href="javascript:fetchRealTimePrice()" style="color: #4167B1;">🔄 重新获取</a></span>`;
+                priceStatus.innerHTML = successHTML;
+                priceStatus.style.color = '#4167B1';
+
+                // 保存到缓存（6小时有效）
+                try {
+                    localStorage.setItem(cacheKey, JSON.stringify({
+                        html: successHTML,
+                        timestamp: new Date().toISOString()
+                    }));
+                    console.log('✅ 股价已缓存:', company);
+                } catch (e) {
+                    console.warn('缓存保存失败:', e);
+                }
+            } catch (error) {
+
+                const stockInfo = stockCodeMap[company];
+                const symbol = stockInfo.symbol;
+                const linkSymbol = stockInfo.market === 'us' ? symbol.toLowerCase() : symbol.replace('.HK', '');
+
+                // 显示详细错误信息
+                let errorDetail = error.message || '未知错误';
+                if (errorDetail.length > 100) {
+                    errorDetail = errorDetail.substring(0, 100) + '...';
+                }
+
+                priceStatus.innerHTML = `❌ 自动获取失败 (${errorDetail})<br>`;
+                priceStatus.innerHTML += `<button onclick="fetchRealTimePrice()" style="margin: 8px 5px 0 0; padding: 6px 12px; background: #4167B1; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px;">🔄 重试获取</button>`;
+                priceStatus.innerHTML += `<span style="font-size: 11px; color: #666;">或手动查询并输入：`;
+                if (stockInfo.market === 'us') {
+                    priceStatus.innerHTML += `<a href="https://www.nasdaq.com/market-activity/stocks/${linkSymbol}/historical" target="_blank" style="color: #4167B1;">📊 Nasdaq查询</a></span>`;
+                } else {
+                    priceStatus.innerHTML += `<a href="https://www.hkex.com.hk/Market-Data/Securities-Prices/Equities/Equities-Quote?sym=${linkSymbol}&sc_lang=zh-HK" target="_blank" style="color: #4167B1;">📊 HKEX查询</a></span>`;
+                }
+                priceStatus.style.color = '#4167B1';
+                manualInputDiv.style.display = 'block'; // 显示手动输入框
+            }
+        }
+
+        // 获取港股价格（辅助函数）
+        async function fetchHKPrice(company, hkSymbol, calcDate) {
+            try {
+                const t1 = new Date(calcDate);
+                t1.setDate(t1.getDate() - 1);
+
+                const t1Timestamp = Math.floor(t1.getTime() / 1000);
+                const t2Approx = new Date(t1);
+                t2Approx.setDate(t2Approx.getDate() - 270);
+                const t2Timestamp = Math.floor(t2Approx.getTime() / 1000);
+
+                const apiMethods = [
+                    async () => {
+                        const apiUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${hkSymbol}?period1=${t2Timestamp}&period2=${t1Timestamp}&interval=1d`;
+                        const finalUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(apiUrl);
+                        const response = await fetch(finalUrl, { headers: { 'Accept': 'application/json' } });
+                        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                        return await response.json();
+                    },
+                    async () => {
+                        const apiUrl = `https://query2.finance.yahoo.com/v8/finance/chart/${hkSymbol}?period1=${t2Timestamp}&period2=${t1Timestamp}&interval=1d`;
+                        const finalUrl = 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(apiUrl);
+                        const response = await fetch(finalUrl);
+                        return await response.json();
+                    }
+                ];
+
+                for (const method of apiMethods) {
+                    try {
+                        const data = await method();
+                        if (data.chart && data.chart.result && data.chart.result[0]) {
+                            const result = data.chart.result[0];
+                            const quotes = result.indicators.quote[0];
+                            const closePrices = quotes.close.filter(p => p !== null && !isNaN(p));
+                            const last120 = closePrices.slice(-120);
+
+                            if (last120.length > 0) {
+                                const avgPrice = last120.reduce((sum, p) => sum + p, 0) / last120.length;
+                                companyData[company].currentPrice.hk = parseFloat(avgPrice.toFixed(2));
+
+                                const rate = exchangeRates.HKD_CNY;
+                                companyData[company].currentPrice.cny = parseFloat((avgPrice * rate).toFixed(2));
+                                break;
+                            }
+                        }
+                    } catch (e) {
+                        console.log('港股获取方法失败:', e);
+                    }
+                }
+            } catch (error) {
+                console.error('获取港股价格失败:', error);
+            }
+        }
+
+        // 页面加载完成后初始化
+        window.addEventListener('DOMContentLoaded', async function() {
+            // 绑定公司选择事件
+            const companySelect = document.getElementById('company');
+            if (companySelect) {
+                companySelect.addEventListener('change', async function() {
+                    await onCompanyChange();
+                });
+            }
+
+            initYearSelects();
+
+            // 自动获取汇率（不等待，立即使用预设汇率）
+            const today = new Date();
+            fetchHistoricalExchangeRates(today);
+        });
+
+        const companyData = {
+            alibaba: {
+                name: '阿里巴巴',
+                type: 'public',
+                listing: { us: '2014-09-19', hk: '2019-11-26' },
+                priceHistory: [
+                    { date: '2015-01', price: 57, currency: 'USD', type: 'low', reason: '全球股市疲软，A股调整，股东解禁期压力' },
+                    { date: '2020-10', price: 319, currency: 'USD', type: 'high', reason: '疫情电商爆发，云计算创新，蚂蚁上市预期' },
+                    { date: '2022-11', price: 58, currency: 'USD', type: 'low', reason: '中美审计冲突，反垄断强化，蚂蚁上市叫停' },
+                ],
+                yearlyAvgPrice: [
+                    { year: 2014, price: 93.2, currency: 'USD' },
+                    { year: 2015, price: 82.5, currency: 'USD' },
+                    { year: 2016, price: 89.6, currency: 'USD' },
+                    { year: 2017, price: 143.2, currency: 'USD' },
+                    { year: 2018, price: 180.7, currency: 'USD' },
+                    { year: 2019, price: 175.5, currency: 'USD' },
+                    { year: 2020, price: 232.1, currency: 'USD' },
+                    { year: 2021, price: 165.4, currency: 'USD' },
+                    { year: 2022, price: 92.4, currency: 'USD' },
+                    { year: 2023, price: 85.6, currency: 'USD' },
+                    { year: 2024, price: 80.5, currency: 'USD' },
+                    { year: 2025, price: 125.5, currency: 'USD' },
+                    { year: 2026, price: 125.5, currency: 'USD' },
+                ],
+                currentPrice: { us: 85, hk: 85 },
+                vesting: {
+                    new: { rule: '15%-25%-30%-30%', startDate: '2024-04', type: 'entry' },
+                    old: { rule: '0%-50%-25%-25%', endDate: '2024-04', type: 'entry' },
+                    performance: { rule: '25%-25%-25%-25%', quarterly: true }
+                }
+            },
+            tencent: {
+                name: '腾讯',
+                type: 'public',
+                listing: { hk: '2004-06-16' },
+                priceHistory: [
+                    { date: '2014-01', price: 100, currency: 'HKD', type: 'low', reason: '1股拆5股，降低交易门槛' },
+                    { date: '2021-02', price: 775, currency: 'HKD', type: 'high', reason: '游戏爆发，云计算拓展' },
+                    { date: '2022-10', price: 170, currency: 'HKD', type: 'low', reason: '中美审计冲突，反垄断，大股东减持' },
+                ],
+                yearlyAvgPrice: [
+                    { year: 2014, price: 114.5, currency: 'HKD' },
+                    { year: 2015, price: 142.1, currency: 'HKD' },
+                    { year: 2016, price: 178.6, currency: 'HKD' },
+                    { year: 2017, price: 305.4, currency: 'HKD' },
+                    { year: 2018, price: 375.2, currency: 'HKD' },
+                    { year: 2019, price: 345.1, currency: 'HKD' },
+                    { year: 2020, price: 472.6, currency: 'HKD' },
+                    { year: 2021, price: 565.3, currency: 'HKD' },
+                    { year: 2022, price: 310.2, currency: 'HKD' },
+                    { year: 2023, price: 335.8, currency: 'HKD' },
+                    { year: 2024, price: 358.2, currency: 'HKD' },
+                    { year: 2025, price: 525.6, currency: 'HKD' },
+                    { year: 2026, price: 525.6, currency: 'HKD' },
+                ],
+                currentPrice: { hk: 420 },
+                vesting: {
+                    entry: { rule: '33%-33%-33%', years: 3 },
+                    performance: [
+                        { rule: '25%-25%-25%-25%', years: 4 },
+                        { rule: '50%-50%', years: 2 }
+                    ]
+                }
+            },
+            kuaishou: {
+                name: '快手',
+                type: 'public',
+                listing: { hk: '2021-02-05' },
+                priceHistory: [
+                    { date: '2021-02', price: 417, currency: 'HKD', type: 'high', reason: '短视频第一股，市场追捧' },
+                    { date: '2022-01', price: 31, currency: 'HKD', type: 'low', reason: '反垄断监管，净亏损188亿' },
+                    { date: '2025-01', price: 70, currency: 'HKD', type: 'rebound', reason: '成本优化盈利，AI落地（可灵）' },
+                ],
+                yearlyAvgPrice: [
+                    { year: 2021, price: 195.4, currency: 'HKD' },
+                    { year: 2022, price: 70.3, currency: 'HKD' },
+                    { year: 2023, price: 55.8, currency: 'HKD' },
+                    { year: 2024, price: 47.5, currency: 'HKD' },
+                    { year: 2025, price: 61.3, currency: 'HKD' },
+                    { year: 2026, price: 61.3, currency: 'HKD' },
+                ],
+                currentPrice: { hk: 70 },
+                vesting: {
+                    default: { rule: '25%-25%-25%-25%', years: 4 }
+                }
+            },
+            baidu: {
+                name: '百度',
+                type: 'public',
+                listing: { us: '2005-08-05', hk: '2021-03-23' },
+                priceHistory: [
+                    { date: '2010-01', price: 718, currency: 'USD', type: 'high', reason: '金融危机后复苏，谷歌退出中国' },
+                    { date: '2008-01', price: 100, currency: 'USD', type: 'low', reason: '全球金融危机' },
+                    { date: '2021-03', price: 130, currency: 'USD', type: 'low', reason: '中美审计冲突，1拆80' },
+                ],
+                yearlyAvgPrice: [
+                    { year: 2014, price: 188.4, currency: 'USD' },
+                    { year: 2015, price: 182.2, currency: 'USD' },
+                    { year: 2016, price: 168.3, currency: 'USD' },
+                    { year: 2017, price: 209.6, currency: 'USD' },
+                    { year: 2018, price: 234.8, currency: 'USD' },
+                    { year: 2019, price: 125.6, currency: 'USD' },
+                    { year: 2020, price: 134.5, currency: 'USD' },
+                    { year: 2021, price: 172.8, currency: 'USD' },
+                    { year: 2022, price: 115.6, currency: 'USD' },
+                    { year: 2023, price: 130.4, currency: 'USD' },
+                    { year: 2024, price: 98.5, currency: 'USD' },
+                    { year: 2025, price: 102.4, currency: 'USD' },
+                    { year: 2026, price: 102.4, currency: 'USD' },
+                ],
+                currentPrice: { us: 90, hk: 100 },
+                vesting: {
+                    entry: { rule: '25%-25%-25%-25%' },
+                    performance: [
+                        { rule: '50%-40%-5%-5%' },
+                        { rule: '0%-0%-15%-85%' }
+                    ]
+                }
+            },
+            jd: {
+                name: '京东',
+                type: 'public',
+                listing: { us: '2014-05-22', hk: '2020-06-18' },
+                priceHistory: [
+                    { date: '2021-01', price: 108, currency: 'USD', type: 'high', reason: '疫情线上零售爆发，首次全年盈利' },
+                    { date: '2018-01', price: 19, currency: 'USD', type: 'low', reason: '中美贸易摩擦，刘强东事件' },
+                    { date: '2023-01', price: 25, currency: 'USD', type: 'low', reason: '中美审计冲突，反垄断，1拆2' },
+                ],
+                yearlyAvgPrice: [
+                    { year: 2014, price: 26.5, currency: 'USD' },
+                    { year: 2015, price: 28.7, currency: 'USD' },
+                    { year: 2016, price: 24.9, currency: 'USD' },
+                    { year: 2017, price: 39.1, currency: 'USD' },
+                    { year: 2018, price: 33.4, currency: 'USD' },
+                    { year: 2019, price: 29.8, currency: 'USD' },
+                    { year: 2020, price: 68.2, currency: 'USD' },
+                    { year: 2021, price: 82.5, currency: 'USD' },
+                    { year: 2022, price: 58.4, currency: 'USD' },
+                    { year: 2023, price: 41.6, currency: 'USD' },
+                    { year: 2024, price: 32.5, currency: 'USD' },
+                    { year: 2025, price: 36.8, currency: 'USD' },
+                    { year: 2026, price: 36.8, currency: 'USD' },
+                ],
+                currentPrice: { us: 30, hk: 100 },
+                vesting: {
+                    entry: { rule: '15%-35%-25%-25%' },
+                    performance: [
+                        { rule: '15%-35%-25%-25%' },
+                        { rule: '25%-25%-25%-25%' }
+                    ]
+                }
+            },
+            meituan: {
+                name: '美团',
+                type: 'public',
+                listing: { hk: '2018-09-20' },
+                priceHistory: [
+                    { date: '2021-02', price: 460, currency: 'HKD', type: 'high', reason: '疫情外卖本地生活爆发' },
+                    { date: '2019-01', price: 40, currency: 'HKD', type: 'low', reason: '中美贸易摩擦，亏损超千亿' },
+                    { date: '2023-01', price: 75, currency: 'HKD', type: 'low', reason: '反垄断罚款34.4亿，疫情风控' },
+                ],
+                yearlyAvgPrice: [
+                    { year: 2018, price: 56.4, currency: 'HKD' },
+                    { year: 2019, price: 72.8, currency: 'HKD' },
+                    { year: 2020, price: 178.5, currency: 'HKD' },
+                    { year: 2021, price: 268.3, currency: 'HKD' },
+                    { year: 2022, price: 165.2, currency: 'HKD' },
+                    { year: 2023, price: 125.4, currency: 'HKD' },
+                    { year: 2024, price: 110.4, currency: 'HKD' },
+                    { year: 2025, price: 126.8, currency: 'HKD' },
+                    { year: 2026, price: 126.8, currency: 'HKD' },
+                ],
+                currentPrice: { hk: 95 },
+                vesting: {
+                    entry: { rule: '0%-50%-25%-25%' },
+                    performance: { rule: '50%-50%', years: 2 }
+                }
+            },
+            pdd: {
+                name: '拼多多',
+                type: 'public',
+                listing: { us: '2018-07-26' },
+                priceHistory: [
+                    { date: '2021-02', price: 212, currency: 'USD', type: 'high', reason: '用户规模和交易规模稳步增长' },
+                    { date: '2018-08', price: 16, currency: 'USD', type: 'low', reason: '中美贸易摩擦，亏损状态' },
+                    { date: '2021-10', price: 52, currency: 'USD', type: 'low', reason: '中美审计冲突，反垄断' },
+                    { date: '2024-02', price: 87, currency: 'USD', type: 'low', reason: '1拆3' },
+                ],
+                yearlyAvgPrice: [
+                    { year: 2018, price: 24.2, currency: 'USD' },
+                    { year: 2019, price: 31.5, currency: 'USD' },
+                    { year: 2020, price: 85.4, currency: 'USD' },
+                    { year: 2021, price: 112.1, currency: 'USD' },
+                    { year: 2022, price: 55.6, currency: 'USD' },
+                    { year: 2023, price: 90.2, currency: 'USD' },
+                    { year: 2024, price: 125.8, currency: 'USD' },
+                    { year: 2025, price: 114.6, currency: 'USD' },
+                    { year: 2026, price: 114.6, currency: 'USD' },
+                ],
+                currentPrice: { us: 120 },
+                vesting: {
+                    default: { rule: '25%-25%-25%-25%' }
+                }
+            },
+            bytedance: {
+                name: '字节跳动',
+                type: 'private',
+                grantPrice: [
+                    { date: '2019-04', price: 44, currency: 'USD' },
+                    { date: '2021-04', price: 126, currency: 'USD' },
+                    { date: '2021-10', price: 132, currency: 'USD' },
+                    { date: '2022-04', price: 142, currency: 'USD' },
+                    { date: '2022-10', price: 155, currency: 'USD' },
+                    { date: '2023-10', price: 160, currency: 'USD' },
+                    { date: '2024-04', price: 170, currency: 'USD' },
+                    { date: '2024-10', price: 181, currency: 'USD' },
+                    { date: '2025-04', price: 189.9, currency: 'USD' },
+                    { date: '2025-10', price: 200.4, currency: 'USD' },
+                    { date: '2026-01', price: 226.07, currency: 'USD' },
+                ],
+                yearlyAvgPrice: [
+                    { year: 2019, price: 44, currency: 'USD' },
+                    { year: 2020, price: 44, currency: 'USD' },
+                    { year: 2021, price: 129, currency: 'USD' },
+                    { year: 2022, price: 148, currency: 'USD' },
+                    { year: 2023, price: 160, currency: 'USD' },
+                    { year: 2024, price: 175, currency: 'USD' },
+                    { year: 2025, price: 195, currency: 'USD' },
+                    { year: 2026, price: 226, currency: 'USD' },
+                ],
+                currentBuyback: 226.07,
+                vesting: {
+                    default: { rule: '25%-25%-25%-25%' }
+                }
+            },
+            xiaohongshu: {
+                name: '小红书',
+                type: 'private',
+                grantPrice: [
+                    { date: '2022-01', price: 5.1, currency: 'USD' },
+                    { date: '2024-04', price: 8.1, currency: 'USD' },
+                    { date: '2024-10', price: 9.1, currency: 'USD' },
+                    { date: '2025-04', price: 11.5, currency: 'USD' },
+                    { date: '2025-06', price: 16, currency: 'USD' },
+                    { date: '2025-10', price: 21.2, currency: 'USD' },
+                ],
+                yearlyAvgPrice: [
+                    { year: 2022, price: 5.1, currency: 'USD' },
+                    { year: 2023, price: 5.1, currency: 'USD' },
+                    { year: 2024, price: 8.6, currency: 'USD' },
+                    { year: 2025, price: 13.75, currency: 'USD' },
+                    { year: 2026, price: 21.2, currency: 'USD' },
+                ],
+                currentBuyback: { employed: 21.2, left: 17.5 },
+                vesting: {
+                    new: { rule: '15%-25%-25%-35%', startDate: '2024-01' },
+                    old: { rule: '0%-50%-25%-25%', endDate: '2024-01' }
+                },
+                buybackRule: '申请回购数量不超过已归属期权的50%'
+            },
+            ant: {
+                name: '蚂蚁金服',
+                type: 'private',
+                grantPrice: [
+                    { date: '2021-06', price: 105, currency: 'RMB' },
+                    { date: '2023-07', price: 80, currency: 'RMB' },
+                ],
+                currentBuyback: null,
+                vesting: {
+                    entry: { rule: '0%-50%-25%-25%' },
+                    performance: { rule: '25%-25%-25%-25%', quarterly: true }
+                },
+                buybackRule: '2023年7月后未再回购过员工期权'
+            },
+            dewu: {
+                name: '得物',
+                type: 'private',
+                grantPrice: [
+                    { date: '2021-06', price: 589, currency: 'RMB' },
+                    { date: '2023-01', price: 884, currency: 'RMB' },
+                ],
+                yearlyAvgPrice: [
+                    { year: 2021, price: 589, currency: 'RMB' },
+                    { year: 2022, price: 589, currency: 'RMB' },
+                    { year: 2023, price: 884, currency: 'RMB' },
+                    { year: 2024, price: 884, currency: 'RMB' },
+                    { year: 2025, price: 884, currency: 'RMB' },
+                    { year: 2026, price: 884, currency: 'RMB' },
+                ],
+                currentBuyback: 400,
+                vesting: {
+                    default: { rule: '0%-50%-25%-25%' }
+                }
+            }
+        };
+
+        function addGrantRecord() {
+            grantRecordCount++;
+            const container = document.getElementById('grantRecords');
+            const newGrant = document.createElement('div');
+            newGrant.className = 'grant-item';
+
+            const yearOptions = generateYearOptions();
+
+            newGrant.innerHTML = `
+                <button class="remove-btn" onclick="removeGrantRecord(this)">删除</button>
+                <div class="form-group">
+                    <label>授予日期</label>
+                    <div style="display: flex; gap: 8px;">
+                        <select class="grant-year" style="flex: 1;">
+                            <option value="">年</option>
+                            ${yearOptions}
+                        </select>
+                        <select class="grant-month" style="flex: 1;">
+                            <option value="">月</option>
+                            <option value="01">1月</option>
+                            <option value="02">2月</option>
+                            <option value="03">3月</option>
+                            <option value="04">4月</option>
+                            <option value="05">5月</option>
+                            <option value="06">6月</option>
+                            <option value="07">7月</option>
+                            <option value="08">8月</option>
+                            <option value="09">9月</option>
+                            <option value="10">10月</option>
+                            <option value="11">11月</option>
+                            <option value="12">12月</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>授予数量</label>
+                    <input type="number" class="grant-amount" placeholder="28000">
+                </div>
+                <div class="form-group">
+                    <label>归属周期（年）</label>
+                    <input type="number" class="grant-vesting" placeholder="4" value="4">
+                </div>
+                <div class="form-group">
+                    <label>行权价</label>
+                    <input type="number" class="grant-price" placeholder="0.8" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label>类型</label>
+                    <select class="grant-type">
+                        <option value="option">期权</option>
+                        <option value="rsu">RSU</option>
+                        <option value="bonus">年终奖转股</option>
+                        <option value="lti">长期现金激励</option>
+                    </select>
+                </div>
+                <div class="form-group grant-stock-type-group" style="display: none;">
+                    <label>股票类型</label>
+                    <select class="grant-stock-type" onchange="onStockTypeChange(this)">
+                        <option value="regular">常规股票</option>
+                        <option value="doubao">豆包虚拟股</option>
+                    </select>
+                </div>
+                <div class="form-group grant-market-group" style="display: none;">
+                    <label>市场</label>
+                    <select class="grant-market">
+                        <option value="us">美股</option>
+                        <option value="hk">港股</option>
+                    </select>
+                </div>
+            `;
+            container.appendChild(newGrant);
+
+            // 根据当前选择的公司决定是否显示市场选择和股票类型选择
+            updateGrantMarketVisibility();
+        }
+
+        // 更新授予记录的市场选择和股票类型选择显隐
+        function updateGrantMarketVisibility() {
+            const company = document.getElementById('company').value;
+            const dualListedCompanies = ['alibaba', 'baidu', 'jd'];
+            const showMarket = dualListedCompanies.includes(company);
+            const showStockType = company === 'bytedance';
+
+            const marketGroups = document.querySelectorAll('.grant-market-group');
+            marketGroups.forEach(group => {
+                group.style.display = showMarket ? 'flex' : 'none';
+            });
+
+            const stockTypeGroups = document.querySelectorAll('.grant-stock-type-group');
+            stockTypeGroups.forEach(group => {
+                group.style.display = showStockType ? 'flex' : 'none';
+            });
+        }
+
+        // 股票类型变化时的处理
+        function onStockTypeChange(selectElement) {
+            const grantItem = selectElement.closest('.grant-item');
+            const stockType = selectElement.value;
+
+            if (stockType === 'doubao') {
+                // 豆包虚拟股：自动设置行权价为10美元，归属周期4年
+                const priceInput = grantItem.querySelector('.grant-price');
+                const vestingInput = grantItem.querySelector('.grant-vesting');
+
+                if (priceInput) priceInput.value = 10;
+                if (vestingInput) vestingInput.value = 4;
+            }
+        }
+
+        function removeGrantRecord(btn) {
+            btn.parentElement.remove();
+        }
+
+        async function analyze() {
+            try {
+                const company = document.getElementById('company').value;
+                const joinYear = document.getElementById('joinYear').value;
+                const joinMonth = document.getElementById('joinMonth').value;
+                const joinDate = joinYear && joinMonth ? `${joinYear}-${joinMonth}` : '';
+
+                if (!company || !joinDate) {
+                    alert('请至少填写公司和入职年月');
+                    return;
+                }
+
+                // 使用当前日期作为测算日期
+                const calcDateObj = getCurrentCalcDate();
+                const year = calcDateObj.getFullYear();
+                const month = String(calcDateObj.getMonth() + 1).padStart(2, '0');
+                const day = String(calcDateObj.getDate()).padStart(2, '0');
+                const calcDate = `${year}-${month}-${day}`;
+
+                // 加载当前月份的固定汇率（不等待，立即使用预设汇率）
+                fetchHistoricalExchangeRates(calcDateObj);
+
+                // 显示进度
+                const resultsDiv = document.getElementById('results');
+                resultsDiv.innerHTML = '<div style="text-align: center; padding: 40px; color: #4167B1;">⏳ 正在计算...</div>';
+                document.getElementById('resultSection').classList.add('show');
+
+                const baseSalary = parseFloat(document.getElementById('baseSalary').value) || 0;
+                const targetBonus = parseFloat(document.getElementById('targetBonus').value) || 0;
+                const actualBonus = parseFloat(document.getElementById('actualBonus').value) || 0;
+                const otherCash = parseFloat(document.getElementById('otherCash').value) || 0;
+
+                const cashData = {
+                    baseSalary: baseSalary,
+                    targetBonus: targetBonus,
+                    actualBonus: actualBonus,
+                    otherCash: otherCash
+                };
+
+                const grantItems = document.querySelectorAll('.grant-item');
+                const grants = [];
+                let hasHKGrant = false;
+
+                grantItems.forEach(item => {
+                    const year = item.querySelector('.grant-year').value;
+                    const month = item.querySelector('.grant-month').value;
+                    const date = year && month ? `${year}-${month}` : '';
+                    const amount = parseFloat(item.querySelector('.grant-amount').value);
+                    const vesting = parseFloat(item.querySelector('.grant-vesting').value);
+                    const price = parseFloat(item.querySelector('.grant-price').value);
+                    const type = item.querySelector('.grant-type').value;
+                    const marketSelect = item.querySelector('.grant-market');
+                    const market = marketSelect ? marketSelect.value : 'us';
+                    const stockTypeSelect = item.querySelector('.grant-stock-type');
+                    const stockType = stockTypeSelect ? stockTypeSelect.value : 'regular';
+
+                    if (date && amount && vesting) {
+                        grants.push({ date, amount, vesting, price: price || 0, type, market, stockType });
+                        if (market === 'hk') {
+                            hasHKGrant = true;
+                        }
+                    }
+                });
+
+                // 如果有港股授予记录，且公司有港股代码，获取港股价格
+                const stockInfo = stockCodeMap[company];
+                if (hasHKGrant && stockInfo && stockInfo.hkSymbol) {
+                    resultsDiv.innerHTML = '<div style="text-align: center; padding: 40px; color: #4167B1;">⏳ 正在获取港股价格...</div>';
+                    await fetchHKPrice(company, stockInfo.hkSymbol, calcDateObj);
+                    resultsDiv.innerHTML = '<div style="text-align: center; padding: 40px; color: #4167B1;">⏳ 正在计算...</div>';
+                }
+
+                const data = companyData[company];
+
+                // 确保 currentPrice 对象存在
+                if (!data.currentPrice) {
+                    data.currentPrice = {};
+                }
+
+                // 提前检查股价数据是否可用
+                if (data.type === 'public') {
+                    if (!data.currentPrice.us && !data.currentPrice.hk && !data.currentPrice.cny) {
+                        // 显示手动输入框
+                        document.getElementById('manualInputDiv').style.display = 'block';
+                        throw new Error('请先获取或手动输入股价再进行分析。\n\n1. 等待自动获取完成（看到✅符号）\n2. 或使用下方手动输入框');
+                    }
+                }
+
+                const analysis = performAnalysis(data, joinDate, cashData, grants, calcDate, company);
+
+                displayResults(analysis);
+            } catch (error) {
+                alert('分析出错：' + error.message);
+                console.error(error);
+                document.getElementById('results').innerHTML = '';
+                document.getElementById('resultSection').classList.remove('show');
+            }
+        }
+
+        // 计算截止某日期的累计归属股数（按年归属，每年25%）
+        function getVestedAmountAtDate(grant, asOfDate) {
+            const grantDate = new Date(grant.date);
+            const daysSinceGrant = (asOfDate - grantDate) / (1000 * 60 * 60 * 24);
+            const yearsSinceGrant = daysSinceGrant / 365.25;
+
+            if (yearsSinceGrant < 0) {
+                return 0; // 还没授予
+            } else if (yearsSinceGrant < 1) {
+                return 0; // 1年cliff期，第一年不归属
+            } else if (yearsSinceGrant >= grant.vesting) {
+                return grant.amount; // 全部归属
+            } else {
+                // 按年归属：满1年25%，满2年50%，满3年75%，满4年100%
+                const completedYears = Math.floor(yearsSinceGrant);
+                const vestingPercent = completedYears / grant.vesting;
+                return grant.amount * vestingPercent;
+            }
+        }
+
+        // 计算指定时间段内归属的股数
+        function getVestedSharesInPeriod(grant, startDate, endDate) {
+            const vestedAtEnd = getVestedAmountAtDate(grant, endDate);
+            const vestedAtStart = getVestedAmountAtDate(grant, startDate);
+            return vestedAtEnd - vestedAtStart;
+        }
+
+        // 获取指定年份的历史股价（用于人选价值轨迹图）
+        function getHistoricalPrice(companyKey, year, currentPriceCNY, calcYear) {
+            // 如果是当前年或未来年，使用当前180天均价
+            if (year >= calcYear) {
+                return currentPriceCNY;
+            }
+
+            // 历史年份：查找yearlyAvgPrice
+            const company = companyData[companyKey];
+            if (!company || !company.yearlyAvgPrice) {
+                return currentPriceCNY; // 没有历史数据，使用当前价格
+            }
+
+            const historicalData = company.yearlyAvgPrice.find(item => item.year === year);
+            if (!historicalData) {
+                return currentPriceCNY; // 没有该年份数据，使用当前价格
+            }
+
+            // 将历史价格转换为人民币
+            const exchangeRates = window.exchangeRates || { USD: 7.2, HKD: 0.92, RMB: 1 };
+            const historicalPriceCNY = historicalData.price * exchangeRates[historicalData.currency];
+
+            return historicalPriceCNY;
+        }
+
+        function performAnalysis(data, joinDate, cashData, grants, calcDate, companyKey) {
+            const joinYear = parseInt(joinDate.substring(0, 4));
+            const joinMonth = parseInt(joinDate.substring(5, 7));
+            const joinDateObj = new Date(joinYear, joinMonth - 1);
+
+            // 测算日期
+            const calcDateObj = new Date(calcDate);
+            const calcYear = calcDateObj.getFullYear();
+            const calcMonth = calcDateObj.getMonth(); // 0-11
+
+            // 目标期间：(测算月+1)当年 到 测算月次年
+            // 如 2026.2 → 2026.3.1 到 2027.2.28/29
+            const targetStartDate = new Date(calcYear, calcMonth + 1, 1);
+            const targetEndDate = new Date(calcYear + 1, calcMonth + 1, 0); // 次年测算月的最后一天
+
+            // 实际期间：(测算月+1)去年 到 测算月当年
+            // 如 2026.2 → 2025.3.1 到 2026.2.28/29
+            const actualStartDate = new Date(calcYear - 1, calcMonth + 1, 1);
+            const actualEndDate = new Date(calcYear, calcMonth + 1, 0); // 当年测算月的最后一天
+
+            const monthsEmployed = (calcDateObj - joinDateObj) / (1000 * 60 * 60 * 24 * 30);
+            const yearsEmployed = monthsEmployed / 12;
+
+            // 计算目标现金和实际现金
+            const targetAnnualCash = cashData.baseSalary * 12 + cashData.targetBonus + cashData.otherCash;
+            const actualAnnualCash = cashData.baseSalary * 12 + cashData.actualBonus + cashData.otherCash;
+
+            // 获取当前股价（人民币）
+            let currentPrice = 0;
+            let currency = 'CNY';
+            let originalPrice = 0;
+
+            if (data.type === 'public') {
+                // 确保currentPrice对象存在
+                if (!data.currentPrice) {
+                    data.currentPrice = {};
+                }
+
+                // 检查是否有可用的股价数据
+                if (!data.currentPrice.us && !data.currentPrice.hk && !data.currentPrice.cny) {
+                    throw new Error('未获取到股价数据。\n\n请选择公司后等待自动获取完成，或使用下方手动输入框输入股价。\n\n如果自动获取一直失败，可能是网络环境限制。');
+                }
+
+                // 优先使用已转换的人民币价格
+                if (data.currentPrice.cny) {
+                    currentPrice = data.currentPrice.cny;
+                    originalPrice = data.currentPrice.us || data.currentPrice.hk || 0;
+                    currency = data.currentPrice.us ? 'USD' : 'HKD';
+                } else {
+                    // 没有获取实时价格，使用默认值并转换
+                    const price = data.currentPrice.us || data.currentPrice.hk || 0;
+                    if (price === 0) {
+                        throw new Error('股价为空，请手动输入股价后再分析。');
+                    }
+                    const curr = data.currentPrice.us ? 'USD' : 'HKD';
+                    const rate = curr === 'USD' ? exchangeRates.USD_CNY : exchangeRates.HKD_CNY;
+                    currentPrice = price * rate;
+                    originalPrice = price;
+                    currency = curr;
+                }
+            } else {
+                // 非上市公司
+                const price = data.currentBuyback?.employed || data.currentBuyback || 0;
+                if (price === 0) {
+                    throw new Error('未设置回购价，请手动输入当前回购价后再分析。');
+                }
+                const curr = data.grantPrice?.[0]?.currency || 'USD';
+                const rate = curr === 'USD' ? exchangeRates.USD_CNY : exchangeRates.HKD_CNY;
+                currentPrice = price * rate;
+                originalPrice = price;
+                currency = curr;
+            }
+
+            // 分别计算目标期间和实际期间的收益（全部用人民币）
+            let targetEquityValue = 0;  // 未来一年会归属的股票价值
+            let actualEquityValue = 0;  // 过去一年已归属的股票价值
+            let totalEquityValue = 0;    // 所有股票的总价值（用于显示）
+            let vestedEquityValue = 0;   // 截止测算日期已归属的总价值
+            let targetLTIValue = 0;      // 未来一年会归属的长期现金激励
+            let actualLTIValue = 0;      // 过去一年已归属的长期现金激励
+
+            // 转换后的行权价（人民币）
+            const grantsWithCNY = grants.map(g => {
+                // LTI（长期现金激励）不需要股价计算，直接返回
+                if (g.type === 'lti') {
+                    return {
+                        ...g,
+                        priceCNY: 0,
+                        priceOriginal: 0,
+                        currentPriceCNY: 1, // 设为1，使得单期价值等于单期金额
+                        currentPriceOriginal: 1,
+                        currency: 'CNY',
+                        grantPriceCurrency: 'CNY'
+                    };
+                }
+
+                // 根据授予记录的市场类型，选择对应价格
+                let grantCurrentPrice = currentPrice; // 默认使用主市场价格
+                let grantCurrency = currency;
+                let grantOriginalPrice = originalPrice;
+
+                // 豆包虚拟股：使用固定价格10美元
+                if (g.stockType === 'doubao') {
+                    grantOriginalPrice = 10;
+                    grantCurrency = 'USD';
+                    grantCurrentPrice = 10 * exchangeRates.USD_CNY;
+                } else if (g.market === 'hk' && data.currentPrice.hk) {
+                    // 港股授予，使用港股价格
+                    grantOriginalPrice = data.currentPrice.hk;
+                    grantCurrency = 'HKD';
+                    grantCurrentPrice = grantOriginalPrice * exchangeRates.HKD_CNY;
+                } else if (g.market === 'us' && data.currentPrice.us) {
+                    // 美股授予，使用美股价格
+                    grantOriginalPrice = data.currentPrice.us;
+                    grantCurrency = 'USD';
+                    grantCurrentPrice = grantOriginalPrice * exchangeRates.USD_CNY;
+                }
+
+                // 行权价：优先使用用户手动输入的值
+                let grantTimePrice = g.price || 0; // 用户输入的行权价
+                let grantTimeCurrency = grantCurrency;
+
+                // 如果用户没有输入行权价，小红书默认2美金
+                if (!g.price && company === 'xiaohongshu') {
+                    grantTimePrice = 2;
+                    grantTimeCurrency = 'USD';
+                }
+
+                // 行权价转换为人民币
+                const grantPriceRate = grantTimeCurrency === 'USD' ? exchangeRates.USD_CNY : exchangeRates.HKD_CNY;
+                return {
+                    ...g,
+                    priceCNY: grantTimePrice * grantPriceRate,
+                    priceOriginal: grantTimePrice,
+                    currentPriceCNY: grantCurrentPrice,
+                    currentPriceOriginal: grantOriginalPrice,
+                    currency: grantCurrency,
+                    grantPriceCurrency: grantTimeCurrency
+                };
+            });
+
+            grantsWithCNY.forEach(grant => {
+                // 判断该笔授予在测算日期是否已完全归属
+                const grantDate = new Date(grant.date);
+                const grantEndDate = new Date(grantDate);
+                grantEndDate.setFullYear(grantEndDate.getFullYear() + grant.vesting);
+                const isFullyVested = calcDateObj >= grantEndDate;
+
+                // 长期现金激励单独处理
+                if (grant.type === 'lti') {
+                    // 计算长期现金激励的归属金额（直接按金额，无股价差）
+                    // getVestedSharesInPeriod 对于LTI返回的就是归属的金额
+
+                    // 计算未来一年会归属的金额
+                    const targetVestedAmount = getVestedSharesInPeriod(grant, targetStartDate, targetEndDate);
+                    if (!isFullyVested && targetVestedAmount > 0) {
+                        targetLTIValue += targetVestedAmount;
+                    }
+
+                    // 计算过去一年已归属的金额
+                    const actualVestedAmount = getVestedSharesInPeriod(grant, actualStartDate, actualEndDate);
+                    actualLTIValue += actualVestedAmount;
+                } else {
+                    // 股票类激励（option/rsu/bonus）
+                    // 计算未来一年会归属的股数
+                    // 规则：如果入职授予到期后未追增，该笔股票不计入目标总包
+                    const targetVestedShares = getVestedSharesInPeriod(grant, targetStartDate, targetEndDate);
+                    if (!isFullyVested && targetVestedShares > 0) {
+                        // 只有未完全归属的授予，且未来还有归属，才计入目标
+                        targetEquityValue += targetVestedShares * grant.currentPriceCNY;
+                    }
+
+                    // 计算过去一年已归属的股数（所有授予都算）
+                    const actualVestedShares = getVestedSharesInPeriod(grant, actualStartDate, actualEndDate);
+                    actualEquityValue += actualVestedShares * grant.currentPriceCNY;
+
+                    // 计算所有股票的总价值（按当前市价）
+                    totalEquityValue += grant.amount * grant.currentPriceCNY;
+
+                    // 计算截止测算日期已归属的总价值（按当前市价）
+                    const vestedAtCalcDate = getVestedAmountAtDate(grant, calcDateObj);
+                    vestedEquityValue += vestedAtCalcDate * grant.currentPriceCNY;
+                }
+            });
+
+            // 计算股票归属明细（按授予记录，显示股数）
+            const targetEquityShares = [];  // 目标期间内每笔授予归属的股数
+            const actualEquityShares = [];  // 实际期间内每笔授予归属的股数
+            let targetTotalShares = 0;
+            let actualTotalShares = 0;
+
+            grantsWithCNY.forEach((grant, index) => {
+                const grantDate = new Date(grant.date);
+                let targetSharesThisGrant = 0;
+                let actualSharesThisGrant = 0;
+
+                for (let i = 1; i <= grant.vesting; i++) {
+                    const vestDate = new Date(grantDate);
+                    vestDate.setFullYear(vestDate.getFullYear() + i);
+                    const perYear = Math.floor(grant.amount / grant.vesting);
+
+                    // 判断是否在目标期间
+                    if (vestDate >= targetStartDate && vestDate <= targetEndDate) {
+                        targetSharesThisGrant += perYear;
+                    }
+
+                    // 判断是否在实际期间
+                    if (vestDate >= actualStartDate && vestDate <= actualEndDate) {
+                        actualSharesThisGrant += perYear;
+                    }
+                }
+
+                if (targetSharesThisGrant > 0) {
+                    targetEquityShares.push({
+                        index: index + 1,
+                        date: grant.date,
+                        shares: targetSharesThisGrant
+                    });
+                    targetTotalShares += targetSharesThisGrant;
+                }
+
+                if (actualSharesThisGrant > 0) {
+                    actualEquityShares.push({
+                        index: index + 1,
+                        date: grant.date,
+                        shares: actualSharesThisGrant
+                    });
+                    actualTotalShares += actualSharesThisGrant;
+                }
+            });
+
+            // 生成目标股票备注
+            let targetEquityText = '';
+            if (targetEquityShares.length > 0) {
+                const sharesList = targetEquityShares.map(item => `<span style="color: #4167B1;">${item.shares.toLocaleString()}</span>`).join(' + ');
+                targetEquityText = `目标周期内归属 <strong><span style="color: #4167B1;">${targetTotalShares.toLocaleString()}</span>股</strong>${targetEquityShares.length > 1 ? ` = ${sharesList}` : ''}；价值：¥${formatAmount(Math.round(targetEquityValue))}`;
+            } else {
+                targetEquityText = '目标周期内无股票归属';
+            }
+
+            // 生成实际股票备注
+            let actualEquityText = '';
+            if (actualEquityShares.length > 0) {
+                const sharesList = actualEquityShares.map(item => `<span style="color: #4167B1;">${item.shares.toLocaleString()}</span>`).join(' + ');
+                actualEquityText = `实际周期内归属 <strong><span style="color: #4167B1;">${actualTotalShares.toLocaleString()}</span>股</strong>${actualEquityShares.length > 1 ? ` = ${sharesList}` : ''}；价值：¥${formatAmount(Math.round(actualEquityValue))}`;
+            } else {
+                actualEquityText = '实际周期内无股票归属';
+            }
+
+            // 计算实发奖金月数
+            const actualBonusMonths = cashData.baseSalary > 0 ? (cashData.actualBonus / cashData.baseSalary).toFixed(1) : 0;
+
+            // 计算目标奖金月数
+            const targetBonusMonths = cashData.baseSalary > 0 ? (cashData.targetBonus / cashData.baseSalary).toFixed(1) : 0;
+
+            // 奖金月数颜色判断
+            const bonusMonthsColor = parseFloat(actualBonusMonths) >= parseFloat(targetBonusMonths) ? '#4167B1' : '#FF6090';
+
+            // 奖金月数比较文字
+            let bonusComparison = '';
+            if (parseFloat(actualBonusMonths) > parseFloat(targetBonusMonths)) {
+                bonusComparison = `实际奖金月数（${actualBonusMonths}月）<strong style="color: #4167B1;">大于</strong>目标奖金月数（${targetBonusMonths}月）`;
+            } else if (parseFloat(actualBonusMonths) === parseFloat(targetBonusMonths)) {
+                bonusComparison = `实际奖金月数（${actualBonusMonths}月）<strong style="color: #4167B1;">等于</strong>目标奖金月数（${targetBonusMonths}月）`;
+            } else {
+                bonusComparison = `实际奖金月数（${actualBonusMonths}月）<strong style="color: #FF6090;">小于</strong>目标奖金月数（${targetBonusMonths}月）`;
+            }
+
+            // 测算日期和周期
+            const calcDateObj2 = new Date(calcDate);
+            const calcYear2 = calcDateObj2.getFullYear();
+            const calcMonth2 = calcDateObj2.getMonth() + 1;
+            let periodText = '';
+            if (calcMonth2 === 12) {
+                periodText = `目标周期：${calcYear2 + 1}.1-${calcYear2 + 1}.12<br>实际周期：${calcYear2}.1-${calcYear2}.12`;
+            } else {
+                const nextMonth = calcMonth2 + 1;
+                periodText = `目标周期：${calcYear2}.${nextMonth}-${calcYear2 + 1}.${calcMonth2}<br>实际周期：${calcYear2 - 1}.${nextMonth}-${calcYear2}.${calcMonth2}`;
+            }
+
+            // 计算目标总包和实际总包
+            const targetTotalComp = targetAnnualCash + targetEquityValue;
+            const actualTotalComp = actualAnnualCash + actualEquityValue;
+
+            // 当前已实现总包（年均）
+            const currentRealizedComp = actualAnnualCash + vestedEquityValue / yearsEmployed;
+
+            let entryPrice = null;
+            let entryPriceCNY = 0;
+            if (data.type === 'public') {
+                entryPrice = findClosestPrice(data.priceHistory, joinDate);
+                if (entryPrice) {
+                    const rate = entryPrice.currency === 'USD' ? exchangeRates.USD_CNY : exchangeRates.HKD_CNY;
+                    entryPriceCNY = entryPrice.price * rate;
+                }
+            } else {
+                entryPrice = findClosestGrantPrice(data.grantPrice, joinDate);
+                if (entryPrice) {
+                    const rate = entryPrice.currency === 'USD' ? exchangeRates.USD_CNY : exchangeRates.HKD_CNY;
+                    entryPriceCNY = entryPrice.price * rate;
+                }
+            }
+
+            const priceChange = entryPriceCNY > 0 ? ((currentPrice - entryPriceCNY) / entryPriceCNY * 100) : null;
+
+            let equityProfile = '';
+            let equityBadge = '';
+            if (priceChange === null) {
+                equityProfile = '数据不足';
+                equityBadge = 'warning';
+            } else if (priceChange < -30) {
+                equityProfile = '深套型 🔴';
+                equityBadge = 'danger';
+            } else if (priceChange > 30) {
+                equityProfile = '获利型 🟢';
+                equityBadge = 'success';
+            } else {
+                equityProfile = '平稳型 🟡';
+                equityBadge = 'warning';
+            }
+
+            return {
+                data,
+                companyKey,
+                joinDate,
+                cashData,
+                grants: grantsWithCNY,
+                targetAnnualCash,
+                actualAnnualCash,
+                targetEquityValue,      // 未来一年会归属的股票价值
+                actualEquityValue,      // 过去一年已归属的股票价值
+                totalEquityValue,       // 所有股票总价值
+                vestedEquityValue,      // 截止测算日期已归属总价值
+                targetLTIValue,         // 未来一年会归属的长期现金激励
+                actualLTIValue,         // 过去一年已归属的长期现金激励
+                targetTotalComp: targetTotalComp + targetLTIValue,
+                actualTotalComp: actualTotalComp + actualLTIValue,
+                currentRealizedComp,
+                entryPrice,
+                currentPrice,           // 人民币价格
+                currentPriceOriginal: originalPrice,  // 原始货币价格
+                currency,               // 原始货币
+                priceChange,
+                equityProfile,
+                equityBadge,
+                yearsEmployed,
+                calcDate,
+                exchangeRate: currency === 'USD' ? exchangeRates.USD_CNY : exchangeRates.HKD_CNY,
+                targetEquityText,       // 目标股票备注文本
+                actualEquityText,       // 实际股票备注文本
+                periodText,             // 测算周期文本
+                bonusMonthsColor,       // 奖金月数颜色
+                bonusComparison,        // 奖金月数比较文本
+                targetBonusMonths,      // 目标奖金月数
+                actualBonusMonths       // 实际奖金月数
+            };
+        }
+
+        function findClosestPrice(priceHistory, targetDate) {
+            const target = new Date(targetDate);
+            let closest = priceHistory[0];
+            let minDiff = Math.abs(new Date(closest.date) - target);
+
+            for (let price of priceHistory) {
+                const diff = Math.abs(new Date(price.date) - target);
+                if (diff < minDiff) {
+                    minDiff = diff;
+                    closest = price;
+                }
+            }
+
+            return closest;
+        }
+
+        function findClosestGrantPrice(grantPrices, targetDate) {
+            const target = new Date(targetDate);
+            let closest = null;
+            let minDiff = Infinity;
+
+            for (let grant of grantPrices) {
+                const grantDate = new Date(grant.date);
+                if (grantDate <= target) {
+                    const diff = target - grantDate;
+                    if (diff < minDiff) {
+                        minDiff = diff;
+                        closest = grant;
+                    }
+                }
+            }
+
+            return closest || grantPrices[0];
+        }
+
+        function displayResults(analysis) {
+            const {
+                data,
+                companyKey,
+                joinDate,
+                cashData,
+                grants,
+                targetAnnualCash,
+                actualAnnualCash,
+                targetEquityValue,      // 未来一年会归属的股票价值
+                actualEquityValue,      // 过去一年已归属的股票价值
+                totalEquityValue,       // 所有股票总价值
+                vestedEquityValue,      // 截止测算日期已归属总价值
+                targetLTIValue,         // 未来一年会归属的长期现金激励
+                actualLTIValue,         // 过去一年已归属的长期现金激励
+                targetTotalComp,
+                actualTotalComp,
+                currentRealizedComp,
+                entryPrice,
+                currentPrice,           // 人民币
+                currentPriceOriginal,   // 原始货币
+                currency,               // 原始货币类型
+                priceChange,
+                equityProfile,
+                equityBadge,
+                yearsEmployed,
+                calcDate,
+                exchangeRate,
+                targetEquityText,
+                actualEquityText,
+                periodText,
+                bonusMonthsColor,
+                bonusComparison,
+                targetBonusMonths,
+                actualBonusMonths
+            } = analysis;
+
+            // 检查是否有LTI
+            const hasLTI = targetLTIValue > 0 || actualLTIValue > 0;
+
+            // 基于目标薪酬计算占比
+            let targetCashPercent, targetLTIPercent, targetEquityPercent;
+            if (hasLTI) {
+                targetCashPercent = targetTotalComp > 0 ? (targetAnnualCash / targetTotalComp * 100).toFixed(1) : 0;
+                targetLTIPercent = targetTotalComp > 0 ? (targetLTIValue / targetTotalComp * 100).toFixed(1) : 0;
+                targetEquityPercent = targetTotalComp > 0 ? (targetEquityValue / targetTotalComp * 100).toFixed(1) : 0;
+            } else {
+                targetCashPercent = targetTotalComp > 0 ? (targetAnnualCash / targetTotalComp * 100).toFixed(1) : 100;
+                targetEquityPercent = (100 - parseFloat(targetCashPercent)).toFixed(1);
+            }
+
+            // 基于实际薪酬计算占比
+            let actualCashPercent, actualLTIPercent, actualEquityPercent;
+            if (hasLTI) {
+                actualCashPercent = actualTotalComp > 0 ? (actualAnnualCash / actualTotalComp * 100).toFixed(1) : 0;
+                actualLTIPercent = actualTotalComp > 0 ? (actualLTIValue / actualTotalComp * 100).toFixed(1) : 0;
+                actualEquityPercent = actualTotalComp > 0 ? (actualEquityValue / actualTotalComp * 100).toFixed(1) : 0;
+            } else {
+                actualCashPercent = actualTotalComp > 0 ? (actualAnnualCash / actualTotalComp * 100).toFixed(1) : 100;
+                actualEquityPercent = (100 - parseFloat(actualCashPercent)).toFixed(1);
+            }
+
+            let html = `
+                <div class="result-card">
+                    <h2>💼 候选人总包概览</h2>
+
+                    <table class="comparison-table" style="table-layout: fixed;">
+                        <colgroup>
+                            <col style="width: 12%;">
+                            <col style="width: 26.5%;">
+                            <col style="width: 26.5%;">
+                            <col style="width: 35%;">
+                        </colgroup>
+                        <thead>
+                            <tr>
+                                <th></th>
+                                <th>目标</th>
+                                <th>实际</th>
+                                <th style="background: #4167B1; color: white;">备注</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>总包</td>
+                                <td>¥${formatAmount(targetTotalComp)}</td>
+                                <td>¥${formatAmount(actualTotalComp)}</td>
+                                <td rowspan="${7 + (cashData.otherCash > 0 ? 1 : 0) + (hasLTI ? 1 : 0)}" style="background: #F5FAFD; padding: 15px; font-size: 11px; color: #666; text-align: left; vertical-align: top; line-height: 1.8;">
+                                    <div style="margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px dashed #E1F2FB;">
+                                        <strong style="color: #4167B1;">📅 测算信息</strong><br>
+                                        测算日期：${calcDate}<br>
+                                        ${periodText}
+                                    </div>
+                                    <div style="margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px dashed #E1F2FB;">
+                                        <strong style="color: #4167B1;">💰 现金备注</strong><br>
+                                        ${bonusComparison}
+                                    </div>
+                                    <div>
+                                        <strong style="color: #4167B1;">📈 股票备注</strong><br>
+                                        • ${targetEquityText}<br>
+                                        • ${actualEquityText}<br>
+                                        <span style="font-size: 10px; color: #999; margin-top: 8px; display: block;">
+                                            说明：目标股票 = 未来12个月会归属的股票价值（已到期授予不计入）<br>
+                                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;实际股票 = 过去12个月已归属的股票价值（所有授予都计入）<br>
+                                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;所有金额已按${exchangeRates.rateDate || '默认日期'}汇率折算为人民币
+                                        </span>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>现金</td>
+                                <td>¥${formatAmount(targetAnnualCash)}</td>
+                                <td>¥${formatAmount(actualAnnualCash)}</td>
+                            </tr>
+                            <tr>
+                                <td>基本薪资</td>
+                                <td>¥${formatAmount(cashData.baseSalary)}</td>
+                                <td>¥${formatAmount(cashData.baseSalary)}</td>
+                            </tr>
+                            <tr>
+                                <td>奖金月数</td>
+                                <td style="color: ${bonusMonthsColor}; font-weight: 700;">${targetBonusMonths}</td>
+                                <td style="color: ${bonusMonthsColor}; font-weight: 700;">${actualBonusMonths}</td>
+                            </tr>
+                            <tr>
+                                <td>奖金金额</td>
+                                <td>¥${formatAmount(cashData.targetBonus)}</td>
+                                <td>¥${formatAmount(cashData.actualBonus)}</td>
+                            </tr>
+                            ${hasLTI ? `
+                            <tr>
+                                <td>长期现金激励</td>
+                                <td>¥${formatAmount(targetLTIValue)}</td>
+                                <td>¥${formatAmount(actualLTIValue)}</td>
+                            </tr>
+                            ` : ''}
+                            ${cashData.otherCash > 0 ? `
+                            <tr>
+                                <td>其他现金</td>
+                                <td>¥${formatAmount(cashData.otherCash)}</td>
+                                <td>¥${formatAmount(cashData.otherCash)}</td>
+                            </tr>
+                            ` : ''}
+                            <tr>
+                                <td>股票总收益</td>
+                                <td>¥${formatAmount(targetEquityValue)}</td>
+                                <td>¥${formatAmount(actualEquityValue)}</td>
+                            </tr>
+                            <tr>
+                                <td>比例</td>
+                                <td style="padding: 20px;">
+                                    <div style="position: relative;">
+                                        <div class="chart-bar">
+                                            ${hasLTI && parseFloat(targetLTIPercent) > 0 ? `
+                                            <div class="chart-segment" style="width: ${targetCashPercent}%; background: #4167B1;">
+                                                ${parseFloat(targetCashPercent) >= 12 ? `现金 ${targetCashPercent}%` : ''}
+                                            </div>
+                                            <div class="chart-segment" style="width: ${targetLTIPercent}%; background: #FFA500;">
+                                                ${parseFloat(targetLTIPercent) >= 12 ? `长期现金激励 ${targetLTIPercent}%` : ''}
+                                            </div>
+                                            <div class="chart-segment" style="width: ${targetEquityPercent}%; background: #E1F2FB; color: #4069B3;">
+                                                ${parseFloat(targetEquityPercent) >= 12 ? `股票 ${targetEquityPercent}%` : ''}
+                                            </div>
+                                            ` : `
+                                            <div class="chart-segment" style="width: ${targetCashPercent}%; background: #4167B1;">
+                                                ${parseFloat(targetCashPercent) >= 12 ? `现金 ${targetCashPercent}%` : ''}
+                                            </div>
+                                            <div class="chart-segment" style="width: ${targetEquityPercent}%; background: #E1F2FB; color: #4069B3;">
+                                                ${parseFloat(targetEquityPercent) >= 12 ? `股票 ${targetEquityPercent}%` : ''}
+                                            </div>
+                                            `}
+                                        </div>
+                                        <div style="font-size: 11px; color: #666; margin-top: 5px;">
+                                            ${hasLTI && parseFloat(targetLTIPercent) > 0 ? `
+                                                ${parseFloat(targetCashPercent) < 12 ? `现金 ${targetCashPercent}% ` : ''}
+                                                ${parseFloat(targetLTIPercent) < 12 ? `长期现金激励 ${targetLTIPercent}% ` : ''}
+                                                ${parseFloat(targetEquityPercent) < 12 ? `股票 ${targetEquityPercent}%` : ''}
+                                            ` : `
+                                                ${parseFloat(targetCashPercent) < 12 ? `现金 ${targetCashPercent}% ` : ''}
+                                                ${parseFloat(targetEquityPercent) < 12 ? `股票 ${targetEquityPercent}%` : ''}
+                                            `}
+                                        </div>
+                                    </div>
+                                </td>
+                                <td style="padding: 20px;">
+                                    <div style="position: relative;">
+                                        <div class="chart-bar">
+                                            ${hasLTI && parseFloat(actualLTIPercent) > 0 ? `
+                                            <div class="chart-segment" style="width: ${actualCashPercent}%; background: #4167B1;">
+                                                ${parseFloat(actualCashPercent) >= 12 ? `现金 ${actualCashPercent}%` : ''}
+                                            </div>
+                                            <div class="chart-segment" style="width: ${actualLTIPercent}%; background: #FFA500;">
+                                                ${parseFloat(actualLTIPercent) >= 12 ? `长期现金激励 ${actualLTIPercent}%` : ''}
+                                            </div>
+                                            <div class="chart-segment" style="width: ${actualEquityPercent}%; background: #E1F2FB; color: #4069B3;">
+                                                ${parseFloat(actualEquityPercent) >= 12 ? `股票 ${actualEquityPercent}%` : ''}
+                                            </div>
+                                            ` : `
+                                            <div class="chart-segment" style="width: ${actualCashPercent}%; background: #4167B1;">
+                                                ${parseFloat(actualCashPercent) >= 12 ? `现金 ${actualCashPercent}%` : ''}
+                                            </div>
+                                            <div class="chart-segment" style="width: ${actualEquityPercent}%; background: #E1F2FB; color: #4069B3;">
+                                                ${parseFloat(actualEquityPercent) >= 12 ? `股票 ${actualEquityPercent}%` : ''}
+                                            </div>
+                                            `}
+                                        </div>
+                                        <div style="font-size: 11px; color: #666; margin-top: 5px;">
+                                            ${hasLTI && parseFloat(actualLTIPercent) > 0 ? `
+                                                ${parseFloat(actualCashPercent) < 12 ? `现金 ${actualCashPercent}% ` : ''}
+                                                ${parseFloat(actualLTIPercent) < 12 ? `长期现金激励 ${actualLTIPercent}% ` : ''}
+                                                ${parseFloat(actualEquityPercent) < 12 ? `股票 ${actualEquityPercent}%` : ''}
+                                            ` : `
+                                                ${parseFloat(actualCashPercent) < 12 ? `现金 ${actualCashPercent}% ` : ''}
+                                                ${parseFloat(actualEquityPercent) < 12 ? `股票 ${actualEquityPercent}%` : ''}
+                                            `}
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                ${grants.length > 0 ? `
+                <div class="result-card">
+                    <h2>📈 股票期权详情 <span class="badge badge-${equityBadge}">${equityProfile}</span></h2>
+
+                    <h3>📊 授予记录（共${grants.length}次）</h3>
+                    ${(() => {
+                        // 计算所有涉及的年份（包含授予年和完成归属年）
+                        const allYears = new Set();
+                        grants.forEach(g => {
+                            const grantYear = parseInt(g.date.split('-')[0]);
+                            // 从授予年（第0年）到完成年（第vesting年）
+                            for (let i = 0; i <= g.vesting; i++) {
+                                allYears.add(grantYear + i);
+                            }
+                        });
+                        const years = Array.from(allYears).sort((a, b) => a - b);
+
+                        // 判断哪些年份参与计算（精确到月份）
+                        const calcDateObj = new Date(calcDate);
+                        const calcYear = calcDateObj.getFullYear();
+                        const calcMonth = calcDateObj.getMonth(); // 0-11
+
+                        // 目标期间：(测算月+1)当年 到 测算月次年
+                        const targetStartDate = new Date(calcYear, calcMonth + 1, 1);
+                        const targetEndDate = new Date(calcYear + 1, calcMonth + 1, 0);
+
+                        // 实际期间：(测算月+1)去年 到 测算月当年
+                        const actualStartDate = new Date(calcYear - 1, calcMonth + 1, 1);
+                        const actualEndDate = new Date(calcYear, calcMonth + 1, 0);
+
+                        // 判断每个授予的每年归属是否在计算周期内
+                        const countedYears = new Set();
+                        grants.forEach(g => {
+                            const [gYear, gMonth] = g.date.split('-').map(x => parseInt(x));
+                            const grantDate = new Date(gYear, gMonth - 1, 1);
+
+                            // 检查每个归属周期
+                            for (let i = 1; i <= g.vesting; i++) {
+                                const vestDate = new Date(grantDate);
+                                vestDate.setFullYear(vestDate.getFullYear() + i);
+                                const vestYear = vestDate.getFullYear();
+
+                                // 如果该归属时间点在目标期间或实际期间内，标记该年份
+                                if ((vestDate >= targetStartDate && vestDate <= targetEndDate) ||
+                                    (vestDate >= actualStartDate && vestDate <= actualEndDate)) {
+                                    countedYears.add(vestYear);
+                                }
+                            }
+                        });
+
+                        // 计算每个授予的年度归属股数（1年cliff + 之后每年25%）
+                        const vestingSchedules = grants.map(g => {
+                            const grantYear = parseInt(g.date.split('-')[0]);
+                            const grantMonth = parseInt(g.date.split('-')[1]);
+                            const perYear = Math.floor(g.amount / g.vesting);
+                            const schedule = {};
+
+                            // 第0年：0股（cliff期）
+                            schedule[grantYear] = 0;
+
+                            // 第1-4年：每年25%
+                            for (let i = 1; i <= g.vesting; i++) {
+                                schedule[grantYear + i] = perYear;
+                            }
+
+                            // 最后一年加上余数
+                            const remainder = g.amount - perYear * g.vesting;
+                            if (remainder > 0) {
+                                schedule[grantYear + g.vesting] += remainder;
+                            }
+
+                            return schedule;
+                        });
+
+                        return `
+                    <table class="grant-table">
+                        <thead>
+                            <tr>
+                                <th colspan="7" style="background: #4167B1; text-align: center; color: white;">授予进度</th>
+                                <th class="section-divider" colspan="${years.length}" style="background: #4167B1; text-align: center; color: white;">年度归属记录</th>
+                            </tr>
+                            <tr>
+                                <th style="background: #DEF0F9; color: #1B1F23;">授予类型</th>
+                                <th style="background: #DEF0F9; color: #1B1F23;">授予日期</th>
+                                <th style="background: #DEF0F9; color: #1B1F23;">授予数量</th>
+                                <th style="background: #DEF0F9; color: #1B1F23;">归属周期</th>
+                                <th style="background: #DEF0F9; color: #1B1F23;">单期数量</th>
+                                <th style="background: #DEF0F9; color: #1B1F23;">行权价</th>
+                                <th style="background: #DEF0F9; color: #1B1F23;">单期价值</th>
+                                ${years.map((year, idx) => {
+                                    const isCounted = countedYears.has(year);
+                                    const bgColor = isCounted ? '#DEF0F9' : '#F8F8F8';
+                                    return `<th class="${idx === 0 ? 'section-divider' : ''}" style="background: ${bgColor}; color: ${isCounted ? '#1B1F23' : '#999'};">${year}</th>`;
+                                }).join('')}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${grants.map((g, gIdx) => {
+                                const grantPriceCNY = g.priceCNY;
+                                const grantCurrentPrice = g.currentPriceCNY;
+                                const gainPerShare = grantCurrentPrice - grantPriceCNY;
+                                const totalValue = g.amount * gainPerShare;
+                                const perYear = Math.floor(g.amount / g.vesting);
+                                const perYearValue = perYear * gainPerShare;
+
+                                // 判断是否已到期
+                                const grantDate = new Date(g.date);
+                                const grantEndDate = new Date(grantDate);
+                                grantEndDate.setFullYear(grantEndDate.getFullYear() + g.vesting);
+                                const calcDateObj = new Date(calcDate);
+                                const isFullyVested = calcDateObj >= grantEndDate;
+
+                                let typeLabel = g.type === 'option' ? '期权' : g.type === 'rsu' ? 'RSU' : g.type === 'lti' ? '长期现金激励' : '年终奖';
+                                if (g.stockType === 'doubao') {
+                                    typeLabel = '豆包虚拟股';
+                                }
+                                const expiredTag = isFullyVested ? '<br><span style="font-size: 10px; color: #4167B1;">(已到期)</span>' : '';
+
+                                // 根据类型添加单位后缀
+                                const isLTI = g.type === 'lti';
+                                const amountSuffix = isLTI ? '' : '股';
+                                const amountPrefix = isLTI ? '¥' : '';
+
+                                return `
+                                    <tr>
+                                        <td>${typeLabel}${expiredTag}</td>
+                                        <td>${g.date}</td>
+                                        <td><span style="color: #4167B1;">${amountPrefix}${g.amount.toLocaleString()}${amountSuffix}</span></td>
+                                        <td>${g.vesting}</td>
+                                        <td class="highlight-green"><span style="color: #4167B1;">${amountPrefix}${perYear.toLocaleString()}${amountSuffix}</span></td>
+                                        <td>¥${formatAmount(grantPriceCNY)}<br><span style="font-size: 10px; color: #999;">(${formatAmount(g.priceOriginal)} ${g.currency})</span></td>
+                                        <td class="highlight-red">¥${formatAmount(perYearValue)}</td>
+                                        ${years.map((year, idx) => {
+                                            const amount = vestingSchedules[gIdx][year] || '';
+                                            const isCounted = countedYears.has(year);
+                                            let className = idx === 0 ? 'section-divider' : '';
+                                            if (amount) {
+                                                className += isCounted ? ' highlight-green' : ' highlight-gray';
+                                            }
+                                            return `<td class="${className.trim()}">${amount ? '<span style="color: #4167B1;">' + amountPrefix + amount.toLocaleString() + amountSuffix + '</span>' : ''}</td>`;
+                                        }).join('')}
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                    `;
+                    })()}
+
+                    <div style="padding: 10px; background: #F5FAFD; border-radius: 8px; margin: 15px 0; font-size: 11px; color: #666; text-align: center;">
+                        💡 颜色说明：<span style="color: #1B1F23; font-weight: 600;">浅蓝色</span> = 参与计算年份 ｜ <span style="color: #999; font-weight: 600;">灰色</span> = 不参与计算年份<br>
+                        📊 单期价值 = 单期股数 × (股价均值 - 行权价)，负数表示相对授予时亏损
+                    </div>
+
+                    ${(() => {
+                        // 人选价值轨迹图
+                        if (!joinDate) return '';
+
+                        const joinYear = parseInt(joinDate.split('-')[0]);
+                        const calcYear = new Date(calcDate).getFullYear();
+                        const startYear = joinYear;
+                        const endYear = calcYear + 2; // 未来2年
+                        const years = [];
+                        for (let y = startYear; y <= endYear; y++) {
+                            years.push(y);
+                        }
+
+                        // 获取测算月份
+                        const calcDateObj = new Date(calcDate);
+                        const calcMonth = calcDateObj.getMonth(); // 0-11
+
+                        // 计算每年的数据（滚动12个月逻辑）
+                        const yearlyData = years.map(year => {
+                            const isPrediction = year > calcYear;
+
+                            // 现金收入（固定）
+                            const cashIncome = cashData.baseSalary + cashData.targetBonus;
+
+                            // 构建该年的12个月期间：从year年(测算月+1)到(year+1)年测算月
+                            const periodStartDate = new Date(year, calcMonth + 1, 1);
+                            const periodEndDate = new Date(year + 1, calcMonth + 1, 0); // 下一年测算月的最后一天
+
+                            // 股票归属价值（不包括LTI）
+                            let equityValue = 0;
+                            let ltiValue = 0;
+
+                            grants.forEach(g => {
+                                // LTI单独处理
+                                if (g.type === 'lti') {
+                                    const vestedAmount = getVestedSharesInPeriod(g, periodStartDate, periodEndDate);
+                                    ltiValue += vestedAmount;
+                                    return;
+                                }
+
+                                // 股票类激励处理
+                                // 确保有股价数据（允许priceCNY为0，表示无行权价）
+                                if (typeof g.currentPriceCNY === 'undefined' || g.currentPriceCNY === null) return;
+
+                                // 计算该期间归属的股数
+                                const vestedShares = getVestedSharesInPeriod(g, periodStartDate, periodEndDate);
+
+                                if (vestedShares > 0) {
+                                    // 根据年份选择合适的股价：历史年份用历史均价，当前及未来年份用当前180天均价
+                                    const priceToUse = getHistoricalPrice(companyKey, year, g.currentPriceCNY, calcYear);
+                                    equityValue += vestedShares * priceToUse;
+                                }
+                            });
+
+                            return {
+                                year,
+                                cashIncome,
+                                equityValue,
+                                ltiValue,
+                                totalComp: cashIncome + ltiValue + equityValue,
+                                isPrediction
+                            };
+                        });
+
+                        // 找出最大值用于缩放
+                        const maxTotal = Math.max(...yearlyData.map(d => d.totalComp), 1); // 至少为1，避免除以0
+
+                        // 如果所有数据都是0，不显示图表
+                        if (maxTotal <= 1) return '';
+
+                        // 准备股价数据用于右Y轴
+                        // 确定公司的主要货币
+                        const company = companyData[companyKey];
+                        let priceCurrency = 'USD';
+                        if (company.type === 'public') {
+                            if (company.currentPrice?.hk && !company.currentPrice?.us) {
+                                priceCurrency = 'HKD';
+                            } else if (company.currentPrice?.us) {
+                                priceCurrency = 'USD';
+                            } else if (company.currentPrice?.cny) {
+                                priceCurrency = 'RMB';
+                            }
+                        } else {
+                            priceCurrency = company.grantPrice?.[0]?.currency || 'USD';
+                        }
+
+                        const yearlyDataWithPrice = yearlyData.map(year => {
+                            // 获取该年的股价（原始货币）
+                            let priceOriginal = 0;
+                            const exchangeRates = window.exchangeRates || { USD: 7.2, HKD: 0.92, RMB: 1 };
+
+                            // 查找历史价格数据
+                            if (company.yearlyAvgPrice) {
+                                const historicalData = company.yearlyAvgPrice.find(item => item.year === year.year);
+                                if (historicalData) {
+                                    // 如果历史数据货币与主货币一致，直接使用
+                                    if (historicalData.currency === priceCurrency) {
+                                        priceOriginal = historicalData.price;
+                                    } else {
+                                        // 需要转换货币
+                                        const priceCNY = historicalData.price * exchangeRates[historicalData.currency];
+                                        priceOriginal = priceCNY / exchangeRates[priceCurrency];
+                                    }
+                                }
+                            }
+
+                            // 如果没有历史数据，使用当前价格
+                            if (priceOriginal === 0) {
+                                grants.forEach(g => {
+                                    if (g.type === 'lti' || typeof g.currentPriceCNY === 'undefined' || g.currentPriceCNY === null) return;
+                                    priceOriginal = g.currentPriceCNY / exchangeRates[priceCurrency];
+                                });
+                            }
+
+                            return { ...year, priceOriginal, priceCurrency };
+                        });
+
+                        const chartWidth = 800;
+                        const chartHeight = 420;
+                        const padding = { top: 40, right: 80, bottom: 60, left: 80 };
+                        const plotWidth = chartWidth - padding.left - padding.right;
+                        const plotHeight = chartHeight - padding.top - padding.bottom;
+
+                        // 根据年份数量动态调整绘图宽度，让柱子更紧凑
+                        const numYears = yearlyData.length;
+                        const effectivePlotWidth = Math.min(plotWidth, numYears * 70); // 每年最多70px
+                        const plotOffsetX = padding.left + (plotWidth - effectivePlotWidth) / 2; // 居中偏移
+
+                        // 计算Y轴范围
+                        // 左Y轴：总包价值
+                        const maxTotalRounded = Math.max(50000, Math.ceil(maxTotal / 50000) * 50000); // 向上取整到5万，最小5万
+                        const leftYTicks = [0, maxTotalRounded * 0.25, maxTotalRounded * 0.5, maxTotalRounded * 0.75, maxTotalRounded];
+
+                        // 右Y轴：股价（原始货币）
+                        const priceValues = yearlyDataWithPrice.map(d => d.priceOriginal).filter(p => p > 0);
+                        const maxPrice = priceValues.length > 0 ? Math.max(...priceValues) : 100;
+                        const minPrice = priceValues.length > 0 ? Math.min(...priceValues) : 0;
+                        const priceRange = maxPrice - minPrice;
+                        const pricePadding = priceRange > 0 ? priceRange * 0.2 : maxPrice * 0.2;
+                        const rightYMin = Math.max(0, minPrice - pricePadding);
+                        const rightYMax = maxPrice + pricePadding;
+                        const rightYRange = rightYMax - rightYMin;
+                        const rightYTicks = rightYRange > 0 ? [rightYMin, rightYMin + rightYRange * 0.25, rightYMin + rightYRange * 0.5, rightYMin + rightYRange * 0.75, rightYMax] : [0, 25, 50, 75, 100];
+
+                        // 货币符号
+                        const currencySymbol = priceCurrency === 'USD' ? '$' : priceCurrency === 'HKD' ? 'HK$' : '¥';
+                        const currencyLabel = priceCurrency === 'USD' ? '美元' : priceCurrency === 'HKD' ? '港币' : '人民币';
+
+                        // 如果没有年份数据，不显示图表
+                        if (yearlyDataWithPrice.length === 0) return '';
+
+                        // 基准线价格（当前回购价）
+                        const baselinePrice = yearlyDataWithPrice[yearlyDataWithPrice.length - 1].priceOriginal || 200;
+
+                        // 柱子宽度 - 增加到0.75让柱子更紧凑
+                        const barWidth = Math.min(60, effectivePlotWidth / Math.max(1, yearlyDataWithPrice.length) * 0.75);
+
+                        // 获取入职年份的股价
+                        const joinYearData = yearlyDataWithPrice[0];
+                        const joinPrice = joinYearData ? joinYearData.priceOriginal : 0;
+
+                        return `
+                            <h3 style="margin-bottom: 3px; margin-top: 15px;">📊 人选价值轨迹图</h3>
+                            <div style="background: white; padding: 15px 20px; border-radius: 12px; margin: 0;">
+                                <svg width="${chartWidth}" height="${chartHeight}" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Arial', sans-serif;">
+                                    <!-- 背景网格（仅Y轴方向） -->
+                                    ${leftYTicks.map(tick => {
+                                        const y = padding.top + plotHeight - (tick / maxTotalRounded) * plotHeight;
+                                        return `<line x1="${padding.left}" y1="${y}" x2="${padding.left + plotWidth}" y2="${y}" stroke="#E8E8E8" stroke-width="1" stroke-dasharray="2,2"/>`;
+                                    }).join('')}
+
+                                    <!-- 堆叠柱状图 -->
+                                    ${yearlyDataWithPrice.map((d, i) => {
+                                        const x = plotOffsetX + (i + 0.5) / yearlyDataWithPrice.length * effectivePlotWidth - barWidth / 2;
+                                        const cashHeight = (d.cashIncome / maxTotalRounded) * plotHeight;
+                                        const equityHeight = ((d.equityValue + d.ltiValue) / maxTotalRounded) * plotHeight;
+                                        const cashY = padding.top + plotHeight - cashHeight;
+                                        const equityY = cashY - equityHeight;
+
+                                        return `
+                                            <!-- 现金柱（深蓝色） -->
+                                            <rect x="${x}" y="${cashY}" width="${barWidth}" height="${cashHeight}"
+                                                fill="#4069B3" opacity="0.9"/>
+
+                                            <!-- 股票柱（淡蓝色） -->
+                                            <rect x="${x}" y="${equityY}" width="${barWidth}" height="${equityHeight}"
+                                                fill="#E1F2FB" opacity="0.95"/>
+                                        `;
+                                    }).join('')}
+
+                                    <!-- 基准线（右Y轴） - 在柱子之后绘制，显示在上层 -->
+                                    ${(() => {
+                                        if (rightYRange <= 0) return '';
+                                        const y = padding.top + plotHeight - ((baselinePrice - rightYMin) / rightYRange) * plotHeight;
+                                        return `
+                                            <line x1="${padding.left}" y1="${y}" x2="${padding.left + plotWidth}" y2="${y}"
+                                                stroke="#FF69B4" stroke-width="2.5" stroke-dasharray="5,5"/>
+                                            <text x="${padding.left + plotWidth - 5}" y="${y - 5}" text-anchor="end"
+                                                fill="#FF69B4" font-size="11" font-weight="600">${currencySymbol}${baselinePrice.toFixed(priceCurrency === 'RMB' ? 0 : 1)}</text>
+                                        `;
+                                    })()}
+
+                                    <!-- 股价折线（浅灰色虚线） - 在柱子之后绘制，显示在上层 -->
+                                    ${(() => {
+                                        if (rightYRange <= 0 || yearlyDataWithPrice.length === 0) return '';
+                                        let path = '';
+                                        yearlyDataWithPrice.forEach((d, i) => {
+                                            const x = plotOffsetX + (i + 0.5) / yearlyDataWithPrice.length * effectivePlotWidth;
+                                            const y = padding.top + plotHeight - ((d.priceOriginal - rightYMin) / rightYRange) * plotHeight;
+                                            if (i === 0) {
+                                                path += `M ${x} ${y}`;
+                                            } else {
+                                                path += ` L ${x} ${y}`;
+                                            }
+                                        });
+                                        return `<path d="${path}" stroke="#999" stroke-width="2" stroke-dasharray="8,4" fill="none"/>`;
+                                    })()}
+
+                                    <!-- 股价锚点（鼠标悬停显示价格） - 在最上层 -->
+                                    ${rightYRange > 0 ? yearlyDataWithPrice.map((d, i) => {
+                                        const x = plotOffsetX + (i + 0.5) / yearlyDataWithPrice.length * effectivePlotWidth;
+                                        const y = padding.top + plotHeight - ((d.priceOriginal - rightYMin) / rightYRange) * plotHeight;
+                                        const priceDecimals = priceCurrency === 'RMB' ? 0 : 1;
+                                        const priceLabel = `${d.year}: ${currencySymbol}${d.priceOriginal.toFixed(priceDecimals)}`;
+                                        return `
+                                            <g>
+                                                <circle cx="${x}" cy="${y}" r="5" fill="#999" style="cursor: pointer;"
+                                                    onmouseover="this.setAttribute('r', '7'); this.nextElementSibling.style.display='block';"
+                                                    onmouseout="this.setAttribute('r', '5'); this.nextElementSibling.style.display='none';"/>
+                                                <g style="display:none; pointer-events: none;">
+                                                    <rect x="${x - 35}" y="${y - 28}" width="70" height="20" rx="4" fill="white" stroke="#999" stroke-width="1"/>
+                                                    <text x="${x}" y="${y - 14}" text-anchor="middle" fill="#666" font-size="11" font-weight="600">
+                                                        ${priceLabel}
+                                                    </text>
+                                                </g>
+                                            </g>
+                                        `;
+                                    }).join('') : ''}
+
+                                    <!-- 总包金额标签 -->
+                                    ${yearlyDataWithPrice.map((d, i) => {
+                                        const x = plotOffsetX + (i + 0.5) / yearlyDataWithPrice.length * effectivePlotWidth;
+                                        const totalHeight = ((d.cashIncome + d.equityValue + d.ltiValue) / maxTotalRounded) * plotHeight;
+                                        const y = padding.top + plotHeight - totalHeight - 8;
+                                        return `
+                                            <text x="${x}" y="${y}" text-anchor="middle" fill="#999" font-size="12" font-weight="600">
+                                                ${(d.totalComp / 10000).toFixed(0)}w
+                                            </text>
+                                        `;
+                                    }).join('')}
+
+                                    <!-- X轴标签 -->
+                                    ${yearlyDataWithPrice.map((d, i) => {
+                                        const x = plotOffsetX + (i + 0.5) / yearlyDataWithPrice.length * effectivePlotWidth;
+                                        return `
+                                            <text x="${x}" y="${padding.top + plotHeight + 25}" text-anchor="middle"
+                                                fill="${d.year === calcYear ? '#4069B3' : '#666'}" font-size="12"
+                                                font-weight="${d.year === calcYear ? 'bold' : 'normal'}">
+                                                ${d.year}${d.year === calcYear ? '(今)' : ''}
+                                            </text>
+                                        `;
+                                    }).join('')}
+
+                                    <!-- 左Y轴刻度 -->
+                                    ${leftYTicks.map(tick => {
+                                        const y = padding.top + plotHeight - (tick / maxTotalRounded) * plotHeight;
+                                        return `
+                                            <text x="${padding.left - 10}" y="${y + 4}" text-anchor="end" fill="#666" font-size="11">
+                                                ${(tick / 10000).toFixed(0)}
+                                            </text>
+                                        `;
+                                    }).join('')}
+
+                                    <!-- 右Y轴刻度 -->
+                                    ${rightYRange > 0 ? rightYTicks.map(tick => {
+                                        const y = padding.top + plotHeight - ((tick - rightYMin) / rightYRange) * plotHeight;
+                                        return `
+                                            <text x="${padding.left + plotWidth + 10}" y="${y + 4}" text-anchor="start" fill="#666" font-size="11">
+                                                ${currencySymbol}${tick.toFixed(priceCurrency === 'RMB' ? 0 : 0)}
+                                            </text>
+                                        `;
+                                    }).join('') : ''}
+
+                                    <!-- 坐标轴 -->
+                                    <line x1="${padding.left}" y1="${padding.top + plotHeight}"
+                                        x2="${padding.left + plotWidth}" y2="${padding.top + plotHeight}"
+                                        stroke="#333" stroke-width="2"/>
+                                    <line x1="${padding.left}" y1="${padding.top}"
+                                        x2="${padding.left}" y2="${padding.top + plotHeight}"
+                                        stroke="#333" stroke-width="2"/>
+                                    <line x1="${padding.left + plotWidth}" y1="${padding.top}"
+                                        x2="${padding.left + plotWidth}" y2="${padding.top + plotHeight}"
+                                        stroke="#333" stroke-width="2"/>
+
+                                    <!-- Y轴标签 -->
+                                    <text x="${padding.left - 55}" y="${padding.top - 15}" fill="#666" font-size="12" font-weight="600">
+                                        年度总价值 (万 RMB)
+                                    </text>
+                                    <text x="${padding.left + plotWidth + 55}" y="${padding.top - 15}" text-anchor="end" fill="#666" font-size="12" font-weight="600">
+                                        股价/回购价 (${currencyLabel})
+                                    </text>
+
+
+                                </svg>
+
+                                <div style="margin-top: 5px; padding: 12px 15px; background: #F5FAFD; border-radius: 8px; font-size: 12px; line-height: 1.8; color: #666;">
+                                    <strong style="color: #4069B3;">💡 图表说明：</strong><br>
+                                    • <strong>图例：</strong><span style="display: inline-block; width: 12px; height: 12px; background: #4069B3; margin: 0 5px; vertical-align: middle;"></span>深蓝柱=现金 ｜ <span style="display: inline-block; width: 12px; height: 12px; background: #E1F2FB; margin: 0 5px; vertical-align: middle; border: 1px solid #ddd;"></span>淡蓝柱=股票价值 ｜ <span style="display: inline-block; width: 20px; height: 0; border-top: 2px dashed #999; margin: 0 5px; vertical-align: middle;"></span>浅灰虚线=股价 ｜ <span style="display: inline-block; width: 20px; height: 0; border-top: 2px dashed #FF69B4; margin: 0 5px; vertical-align: middle;"></span>粉色虚线=当前价<br>
+                                    • <strong>左Y轴</strong>：年度总价值（万RMB）｜ <strong>右Y轴</strong>：股价/回购价（${currencyLabel}）<br>
+                                    • 每个年份显示从当年测算月下一个月开始的12个月滚动总包<br>
+                                    • 股票价值：历史年份采用当年股价年均值，当前及未来年份采用当前180天均价
+                                </div>
+                            </div>
+                        `;
+                    })()}
+                </div>
+                ` : ''}
+            `;
+
+            document.getElementById('results').innerHTML = html;
+            document.getElementById('resultSection').classList.add('show');
+            document.getElementById('resultSection').scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>
