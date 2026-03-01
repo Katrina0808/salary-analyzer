@@ -598,7 +598,31 @@
             color: #FF6090;
         }
 
-        /* 手机端适配 */
+        /* ========== 手机端响应式优化 ========== */
+
+        /* 表格横向滚动容器 */
+        .table-wrapper {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            margin: 15px 0;
+        }
+
+        /* SVG 图表响应式容器 */
+        .chart-container {
+            width: 100%;
+            height: auto;
+            overflow: hidden;
+            padding: 10px 0;
+        }
+
+        .chart-container svg {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        /* 手机端特定样式 */
         @media (max-width: 768px) {
             body {
                 padding: 10px;
@@ -609,124 +633,66 @@
             }
 
             .header {
-                padding: 25px 20px;
+                padding: 25px 15px;
             }
 
             .header h1 {
                 font-size: 20px;
-                margin-bottom: 8px;
             }
 
             .header p {
                 font-size: 12px;
             }
 
-            .input-section {
-                padding: 20px 15px;
-            }
-
-            .section-title {
-                font-size: 14px;
-                margin-bottom: 12px;
+            .input-section,
+            .result-section {
+                padding: 15px;
             }
 
             .form-grid {
                 grid-template-columns: 1fr;
-                gap: 12px;
-                margin-bottom: 15px;
-            }
-
-            .form-group label {
-                font-size: 13px;
-            }
-
-            .form-group input,
-            .form-group select {
-                font-size: 14px;
-                padding: 10px 12px;
             }
 
             .grant-item {
-                padding: 12px;
-                margin-bottom: 10px;
+                grid-template-columns: 1fr;
             }
 
-            .btn {
-                padding: 10px 18px;
-                font-size: 13px;
-            }
-
-            .btn-primary {
+            .analyze-btn {
                 width: 100%;
-                margin: 15px 0;
+                padding: 15px;
+                font-size: 14px;
             }
 
-            .results-section {
-                padding: 20px 15px;
+            .comparison-chart-container {
+                grid-template-columns: 1fr;
+                gap: 15px;
             }
 
             .comparison-table {
-                overflow-x: auto;
-                -webkit-overflow-scrolling: touch;
-            }
-
-            .comparison-table table {
-                min-width: 600px;
-            }
-
-            .comparison-table th,
-            .comparison-table td {
                 font-size: 12px;
+            }
+
+            .comparison-table thead th,
+            .comparison-table tbody td {
                 padding: 10px 8px;
+                font-size: 12px;
             }
 
-            .chart-container {
+            .result-card {
                 padding: 15px;
-                overflow-x: auto;
             }
 
-            .chart-container svg {
+            .result-card h2 {
+                font-size: 16px;
+            }
+
+            .result-card h3 {
+                font-size: 14px;
+            }
+
+            /* 让表格最小宽度适应内容 */
+            .comparison-table {
                 min-width: 600px;
-            }
-
-            .legend-explanation {
-                font-size: 11px;
-                padding: 10px;
-            }
-
-            .summary-box {
-                padding: 12px;
-                margin-bottom: 12px;
-            }
-
-            .summary-box h3 {
-                font-size: 13px;
-                margin-bottom: 8px;
-            }
-
-            .summary-box .value {
-                font-size: 22px;
-            }
-
-            .summary-box .label {
-                font-size: 11px;
-            }
-
-            /* 手机端隐藏不必要的元素 */
-            .grant-item .remove-btn {
-                padding: 4px 8px;
-                font-size: 11px;
-            }
-        }
-
-        /* 平板适配 */
-        @media (min-width: 769px) and (max-width: 1024px) {
-            .form-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-
-            .container {
-                max-width: 100%;
             }
         }
     </style>
@@ -2618,6 +2584,7 @@
                 <div class="result-card">
                     <h2>💼 候选人总包概览</h2>
 
+                    <div class="table-wrapper">
                     <table class="comparison-table" style="table-layout: fixed;">
                         <colgroup>
                             <col style="width: 12%;">
@@ -2772,6 +2739,7 @@
                             </tr>
                         </tbody>
                     </table>
+                    </div>
                 </div>
 
                 ${grants.length > 0 ? `
@@ -2849,6 +2817,7 @@
                         });
 
                         return `
+                    <div class="table-wrapper">
                     <table class="grant-table">
                         <thead>
                             <tr>
@@ -2920,6 +2889,7 @@
                             }).join('')}
                         </tbody>
                     </table>
+                    </div>
                     `;
                     })()}
 
@@ -3091,8 +3061,8 @@
 
                         return `
                             <h3 style="margin-bottom: 3px; margin-top: 15px;">📊 人选价值轨迹图</h3>
-                            <div style="background: white; padding: 15px 20px; border-radius: 12px; margin: 0;">
-                                <svg width="${chartWidth}" height="${chartHeight}" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Arial', sans-serif;">
+                            <div class="chart-container" style="background: white; padding: 15px 20px; border-radius: 12px; margin: 0;">
+                                <svg viewBox="0 0 ${chartWidth} ${chartHeight}" preserveAspectRatio="xMidYMid meet" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Arial', sans-serif;">
                                     <!-- 背景网格（仅Y轴方向） -->
                                     ${leftYTicks.map(tick => {
                                         const y = padding.top + plotHeight - (tick / maxTotalRounded) * plotHeight;
