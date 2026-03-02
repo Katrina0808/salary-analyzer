@@ -1262,6 +1262,13 @@
                 return price.value * price.exchangeRate;
             }
 
+            // 兼容旧数据：如果没有存储汇率，使用全局配置
+            const fallbackRate = exchangeRates[price.currency + '_CNY'];
+            if (fallbackRate) {
+                console.warn(`⚠️ 使用 fallback 汇率: ${price.currency}_CNY = ${fallbackRate}`);
+                return price.value * fallbackRate;
+            }
+
             throw new Error(`缺少汇率信息: ${price.currency}`);
         }
 
