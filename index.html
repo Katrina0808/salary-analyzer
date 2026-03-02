@@ -1027,8 +1027,8 @@
         // 自动从API获取上月最后一天的汇率
         async function fetchHistoricalExchangeRates(calcDate) {
             // 使用固定汇率（2026年3月最新汇率），避免API调用延迟
-            exchangeRates.USD_CNY = 7.28;
-            exchangeRates.HKD_CNY = 0.88;
+            exchangeRates.USD_CNY = 7.25;
+            exchangeRates.HKD_CNY = 0.93;
             exchangeRates.RMB_CNY = 1;
 
             console.log('✅ 使用预设汇率: USD=7.25, HKD=0.93');
@@ -1183,6 +1183,7 @@
                     value: priceData.hk,
                     currency: 'HKD',
                     source: priceData.source || 'legacy',
+                    exchangeRate: priceData.exchangeRate,  // 保留原有的汇率字段（如果有）
                     timestamp: priceData.timestamp || Date.now()
                 };
             }
@@ -1192,6 +1193,7 @@
                     value: priceData.us,
                     currency: 'USD',
                     source: priceData.source || 'legacy',
+                    exchangeRate: priceData.exchangeRate,  // 保留原有的汇率字段（如果有）
                     timestamp: priceData.timestamp || Date.now()
                 };
             }
@@ -1202,6 +1204,7 @@
                     value: priceData.us,
                     currency: 'USD',
                     source: priceData.source || 'legacy',
+                    exchangeRate: priceData.exchangeRate,  // 保留原有的汇率字段（如果有）
                     timestamp: priceData.timestamp || Date.now()
                 };
             }
@@ -1210,6 +1213,7 @@
                     value: priceData.hk,
                     currency: 'HKD',
                     source: priceData.source || 'legacy',
+                    exchangeRate: priceData.exchangeRate,  // 保留原有的汇率字段（如果有）
                     timestamp: priceData.timestamp || Date.now()
                 };
             }
