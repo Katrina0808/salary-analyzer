@@ -2347,7 +2347,8 @@
                     originalPrice = priceData.value;
                     currency = priceData.currency;
                     currentPrice = getCurrentPriceCNY(data.currentPrice);
-                    storedExchangeRate = priceData.exchangeRate || 1; // 读取存储的汇率
+                    // 读取存储的汇率，如果没有则使用全局配置（兼容旧数据）
+                    storedExchangeRate = priceData.exchangeRate || (currency === 'CNY' ? 1 : exchangeRates[currency + '_CNY']);
 
                     // 日志输出：根据货币类型显示不同格式
                     if (currency === 'CNY') {
