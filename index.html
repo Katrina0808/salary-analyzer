@@ -1016,6 +1016,9 @@
             isFromAPI: false  // 标记是否从API获取
         };
 
+        // 手动输入股价的保护标记
+        let manualPriceSet = false;
+
         // 自动从API获取上月最后一天的汇率
         async function fetchHistoricalExchangeRates(calcDate) {
             // 使用固定汇率（2026年3月最新汇率），避免API调用延迟
@@ -1198,7 +1201,11 @@
                     companyData[company].currentPrice.cny = parseFloat(priceCNY);
                 }
 
-                priceStatus.innerHTML = `✅ 已设置：<strong>${manualPrice.toFixed(2)} ${currency}</strong> ≈ <strong>¥${priceCNY}</strong>`;
+                // 标记为手动设置，防止被自动获取覆盖
+                manualPriceSet = true;
+                console.log('✅ [手动股价] 已设置为', manualPrice, currency, '保护标记已启用');
+
+                priceStatus.innerHTML = `✅ 已设置：<strong>${manualPrice.toFixed(2)} ${currency}</strong> ≈ <strong>¥${priceCNY}</strong> (手动输入)`;
                 priceStatus.style.color = '#4167B1';
             }
         }
@@ -1219,6 +1226,8 @@
 
                 if (!company) {
                     priceStatus.innerHTML = '选择公司后自动获取股价均值（180个自然日，即120个交易日）';
+                    // 清空公司时重置手动标记
+                    manualPriceSet = false;
                     return;
                 }
 
@@ -1229,6 +1238,9 @@
                 fetchHistoricalExchangeRates(calcDate);
 
                 if (isPublic) {
+                    // 切换公司时重置手动标记,允许自动获取新公司的股价
+                    manualPriceSet = false;
+
                     priceStatus.innerHTML = '⏳ 正在自动获取股价均值（180个自然日，即120个交易日）...';
                     priceStatus.style.color = '#4167B1';
 
@@ -1259,6 +1271,21 @@
 
 
             if (!company || !stockCodeMap[company]) {
+                return;
+            }
+
+            // 如果用户已手动设置股价，不自动获取
+            if (manualPriceSet) {
+                console.log('⚠️ [跳过自动获取] 用户已手动设置股价');
+                const stockInfo = stockCodeMap[company];
+                const currency = stockInfo.market === 'us' ? 'USD' : 'HKD';
+                const manualPrice = stockInfo.market === 'us' ?
+                    companyData[company].currentPrice.us :
+                    companyData[company].currentPrice.hk;
+                const priceCNY = companyData[company].currentPrice.cny;
+                priceStatus.innerHTML = `✅ 已设置：<strong>${manualPrice.toFixed(2)} ${currency}</strong> ≈ <strong>¥${priceCNY.toFixed(2)}</strong> (手动输入)`;
+                priceStatus.style.color = '#4167B1';
+                manualInputDiv.style.display = 'block';
                 return;
             }
 
