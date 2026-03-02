@@ -2919,8 +2919,8 @@
                         const yearlyData = years.map(year => {
                             const isPrediction = year > calcYear;
 
-                            // 现金收入（固定）
-                            const cashIncome = cashData.baseSalary + cashData.targetBonus;
+                            // 现金收入（固定）- 轨迹图始终用目标奖金（预测性质）
+                            const baseCashIncome = cashData.baseSalary * 12 + cashData.targetBonus + cashData.otherCash;
 
                             // 构建该年的12个月期间：从year年(测算月+1)到(year+1)年测算月
                             const periodStartDate = new Date(year, calcMonth + 1, 1);
@@ -2954,10 +2954,10 @@
 
                             return {
                                 year,
-                                cashIncome,
+                                cashIncome: baseCashIncome,
                                 equityValue,
                                 ltiValue,
-                                totalComp: cashIncome + ltiValue + equityValue,
+                                totalComp: baseCashIncome + ltiValue + equityValue,
                                 isPrediction
                             };
                         });
