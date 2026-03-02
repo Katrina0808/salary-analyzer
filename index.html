@@ -2300,6 +2300,9 @@
         }
 
         function performAnalysis(data, joinDate, cashData, grants, calcDate, companyKey) {
+            // 兜底汇率：确保函数内部所有计算都有汇率可用
+            const rates = window.exchangeRates || { USD_CNY: 7.25, HKD_CNY: 0.93 };
+
             console.log('========================================');
             console.log('🔍 [开始分析] 公司:', companyKey);
             console.log('📊 [当前股价数据]', JSON.stringify(data.currentPrice, null, 2));
@@ -2355,9 +2358,9 @@
 
                     // 简单逻辑：直接用页面显示的汇率
                     if (currency === 'USD') {
-                        storedExchangeRate = exchangeRates.USD_CNY;
+                        storedExchangeRate = rates.USD_CNY;
                     } else if (currency === 'HKD') {
-                        storedExchangeRate = exchangeRates.HKD_CNY;
+                        storedExchangeRate = rates.HKD_CNY;
                     } else {
                         storedExchangeRate = 1;
                     }
@@ -2382,9 +2385,9 @@
                 const curr = data.grantPrice?.[0]?.currency || 'USD';
                 // 简单逻辑：直接用页面显示的汇率
                 if (curr === 'USD') {
-                    storedExchangeRate = exchangeRates.USD_CNY;
+                    storedExchangeRate = rates.USD_CNY;
                 } else if (curr === 'HKD') {
-                    storedExchangeRate = exchangeRates.HKD_CNY;
+                    storedExchangeRate = rates.HKD_CNY;
                 } else {
                     storedExchangeRate = 1;
                 }
@@ -2454,9 +2457,9 @@
                 if (grantTimeCurrency === 'CNY') {
                     grantPriceRate = 1;
                 } else if (grantTimeCurrency === 'USD') {
-                    grantPriceRate = exchangeRates.USD_CNY;
+                    grantPriceRate = rates.USD_CNY;
                 } else if (grantTimeCurrency === 'HKD') {
-                    grantPriceRate = exchangeRates.HKD_CNY;
+                    grantPriceRate = rates.HKD_CNY;
                 } else {
                     grantPriceRate = 1;
                 }
@@ -2630,9 +2633,9 @@
                     // 简单逻辑：直接用页面显示的汇率
                     let rate;
                     if (entryPrice.currency === 'USD') {
-                        rate = exchangeRates.USD_CNY;
+                        rate = rates.USD_CNY;
                     } else if (entryPrice.currency === 'HKD') {
-                        rate = exchangeRates.HKD_CNY;
+                        rate = rates.HKD_CNY;
                     } else {
                         rate = 1;
                     }
@@ -2644,9 +2647,9 @@
                     // 简单逻辑：直接用页面显示的汇率
                     let rate;
                     if (entryPrice.currency === 'USD') {
-                        rate = exchangeRates.USD_CNY;
+                        rate = rates.USD_CNY;
                     } else if (entryPrice.currency === 'HKD') {
-                        rate = exchangeRates.HKD_CNY;
+                        rate = rates.HKD_CNY;
                     } else {
                         rate = 1;
                     }
@@ -3267,20 +3270,20 @@
                                     if (historicalData.currency === priceCurrency) {
                                         priceOriginal = historicalData.price;
                                     } else {
-                                        // 需要转换货币 - 统一使用全局 exchangeRates
+                                        // 需要转换货币 - 统一使用动态汇率
                                         let historicalRate, targetRate;
                                         if (historicalData.currency === 'USD') {
-                                            historicalRate = window.exchangeRates.USD_CNY;
+                                            historicalRate = rates.USD_CNY;
                                         } else if (historicalData.currency === 'HKD') {
-                                            historicalRate = window.exchangeRates.HKD_CNY;
+                                            historicalRate = rates.HKD_CNY;
                                         } else {
                                             historicalRate = 1;
                                         }
 
                                         if (priceCurrency === 'USD') {
-                                            targetRate = window.exchangeRates.USD_CNY;
+                                            targetRate = rates.USD_CNY;
                                         } else if (priceCurrency === 'HKD') {
-                                            targetRate = window.exchangeRates.HKD_CNY;
+                                            targetRate = rates.HKD_CNY;
                                         } else {
                                             targetRate = 1;
                                         }
@@ -3295,12 +3298,12 @@
                             if (priceOriginal === 0) {
                                 grants.forEach(g => {
                                     if (g.type === 'lti' || typeof g.currentPriceCNY === 'undefined' || g.currentPriceCNY === null) return;
-                                    // 统一使用全局 exchangeRates
+                                    // 统一使用动态汇率
                                     let targetRate;
                                     if (priceCurrency === 'USD') {
-                                        targetRate = window.exchangeRates.USD_CNY;
+                                        targetRate = rates.USD_CNY;
                                     } else if (priceCurrency === 'HKD') {
-                                        targetRate = window.exchangeRates.HKD_CNY;
+                                        targetRate = rates.HKD_CNY;
                                     } else {
                                         targetRate = 1;
                                     }
@@ -3358,7 +3361,7 @@
                         return `
                             <h3 style="margin-bottom: 3px; margin-top: 15px;">📊 人选价值轨迹图</h3>
                             <div class="chart-container" style="background: white; padding: 15px 20px; border-radius: 12px; margin: 0;">
-                                <svg viewBox="0 0 ${chartWidth} ${chartHeight}" preserveAspectRatio="xMidYMid meet" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Arial', sans-serif;">
+                                <svg viewBox="0 0 ${chartWidth} ${chartHeight}" preserveAspectRatio="xMidYMid meet" style="width: 100%; height: auto; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Arial', sans-serif;">
                                     <!-- 背景网格（仅Y轴方向） -->
                                     ${leftYTicks.map(tick => {
                                         const y = padding.top + plotHeight - (tick / maxTotalRounded) * plotHeight;
