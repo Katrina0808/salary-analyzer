@@ -2382,9 +2382,9 @@
                 const curr = data.grantPrice?.[0]?.currency || 'USD';
                 // 简单逻辑：直接用页面显示的汇率
                 if (curr === 'USD') {
-                    storedExchangeRate = rates.USD_CNY;
+                    storedExchangeRate = exchangeRates.USD_CNY;
                 } else if (curr === 'HKD') {
-                    storedExchangeRate = rates.HKD_CNY;
+                    storedExchangeRate = exchangeRates.HKD_CNY;
                 } else {
                     storedExchangeRate = 1;
                 }
@@ -3295,12 +3295,12 @@
                             if (priceOriginal === 0) {
                                 grants.forEach(g => {
                                     if (g.type === 'lti' || typeof g.currentPriceCNY === 'undefined' || g.currentPriceCNY === null) return;
-                                    // 统一使用动态汇率
+                                    // 统一使用全局汇率
                                     let targetRate;
                                     if (priceCurrency === 'USD') {
-                                        targetRate = rates.USD_CNY;
+                                        targetRate = exchangeRates.USD_CNY;
                                     } else if (priceCurrency === 'HKD') {
-                                        targetRate = rates.HKD_CNY;
+                                        targetRate = exchangeRates.HKD_CNY;
                                     } else {
                                         targetRate = 1;
                                     }
