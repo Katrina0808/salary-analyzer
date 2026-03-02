@@ -3251,7 +3251,6 @@
                         const yearlyDataWithPrice = yearlyData.map(year => {
                             // 获取该年的股价（原始货币）
                             let priceOriginal = 0;
-                            const exchangeRates = window.exchangeRates || { USD: 7.2, HKD: 0.92, RMB: 1 };
 
                             // 查找历史价格数据
                             if (company.yearlyAvgPrice) {
@@ -3261,9 +3260,26 @@
                                     if (historicalData.currency === priceCurrency) {
                                         priceOriginal = historicalData.price;
                                     } else {
-                                        // 需要转换货币
-                                        const priceCNY = historicalData.price * exchangeRates[historicalData.currency];
-                                        priceOriginal = priceCNY / exchangeRates[priceCurrency];
+                                        // 需要转换货币 - 统一使用全局 exchangeRates
+                                        let historicalRate, targetRate;
+                                        if (historicalData.currency === 'USD') {
+                                            historicalRate = window.exchangeRates.USD_CNY;
+                                        } else if (historicalData.currency === 'HKD') {
+                                            historicalRate = window.exchangeRates.HKD_CNY;
+                                        } else {
+                                            historicalRate = 1;
+                                        }
+
+                                        if (priceCurrency === 'USD') {
+                                            targetRate = window.exchangeRates.USD_CNY;
+                                        } else if (priceCurrency === 'HKD') {
+                                            targetRate = window.exchangeRates.HKD_CNY;
+                                        } else {
+                                            targetRate = 1;
+                                        }
+
+                                        const priceCNY = historicalData.price * historicalRate;
+                                        priceOriginal = priceCNY / targetRate;
                                     }
                                 }
                             }
@@ -3272,7 +3288,16 @@
                             if (priceOriginal === 0) {
                                 grants.forEach(g => {
                                     if (g.type === 'lti' || typeof g.currentPriceCNY === 'undefined' || g.currentPriceCNY === null) return;
-                                    priceOriginal = g.currentPriceCNY / exchangeRates[priceCurrency];
+                                    // 统一使用全局 exchangeRates
+                                    let targetRate;
+                                    if (priceCurrency === 'USD') {
+                                        targetRate = window.exchangeRates.USD_CNY;
+                                    } else if (priceCurrency === 'HKD') {
+                                        targetRate = window.exchangeRates.HKD_CNY;
+                                    } else {
+                                        targetRate = 1;
+                                    }
+                                    priceOriginal = g.currentPriceCNY / targetRate;
                                 });
                             }
 
