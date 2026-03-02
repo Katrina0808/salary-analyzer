@@ -1254,6 +1254,9 @@
          * @returns {number} 人民币价格
          */
         function getCurrentPriceCNY(priceData) {
+            // 兜底汇率
+            const rates = window.exchangeRates || exchangeRates || { USD_CNY: 7.25, HKD_CNY: 0.93 };
+
             const price = getStockPrice(priceData);
 
             // 如果已经是人民币，直接返回
@@ -1263,9 +1266,9 @@
 
             // 简单逻辑：直接用页面显示的汇率
             if (price.currency === 'USD') {
-                return price.value * exchangeRates.USD_CNY;
+                return price.value * rates.USD_CNY;
             } else if (price.currency === 'HKD') {
-                return price.value * exchangeRates.HKD_CNY;
+                return price.value * rates.HKD_CNY;
             }
 
             throw new Error(`不支持的货币类型: ${price.currency}`);
@@ -2269,6 +2272,9 @@
 
         // 获取指定年份的历史股价（用于人选价值轨迹图）
         function getHistoricalPrice(companyKey, year, currentPriceCNY, calcYear) {
+            // 兜底汇率
+            const rates = window.exchangeRates || { USD_CNY: 7.25, HKD_CNY: 0.93 };
+
             // 如果是当前年或未来年，使用当前180天均价
             if (year >= calcYear) {
                 return currentPriceCNY;
@@ -2285,12 +2291,12 @@
                 return currentPriceCNY; // 没有该年份数据，使用当前价格
             }
 
-            // 将历史价格转换为人民币 - 统一使用全局 exchangeRates
+            // 将历史价格转换为人民币 - 统一使用动态汇率
             let rate;
             if (historicalData.currency === 'USD') {
-                rate = window.exchangeRates.USD_CNY;
+                rate = rates.USD_CNY;
             } else if (historicalData.currency === 'HKD') {
-                rate = window.exchangeRates.HKD_CNY;
+                rate = rates.HKD_CNY;
             } else {
                 rate = 1; // CNY 或其他
             }
