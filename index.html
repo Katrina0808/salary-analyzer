@@ -2285,9 +2285,16 @@
                 return currentPriceCNY; // 没有该年份数据，使用当前价格
             }
 
-            // 将历史价格转换为人民币
-            const exchangeRates = window.exchangeRates || { USD: 7.2, HKD: 0.92, RMB: 1 };
-            const historicalPriceCNY = historicalData.price * exchangeRates[historicalData.currency];
+            // 将历史价格转换为人民币 - 统一使用全局 exchangeRates
+            let rate;
+            if (historicalData.currency === 'USD') {
+                rate = window.exchangeRates.USD_CNY;
+            } else if (historicalData.currency === 'HKD') {
+                rate = window.exchangeRates.HKD_CNY;
+            } else {
+                rate = 1; // CNY 或其他
+            }
+            const historicalPriceCNY = historicalData.price * rate;
 
             return historicalPriceCNY;
         }
