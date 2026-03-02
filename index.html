@@ -2350,9 +2350,9 @@
                     const priceData = getStockPrice(data.currentPrice, marketType);
                     originalPrice = priceData.value;
                     currency = priceData.currency;
-                    currentPrice = getCurrentPriceCNY(data.currentPrice);
-                    // 读取存储的汇率，如果没有则使用全局配置（兼容旧数据）
-                    storedExchangeRate = priceData.exchangeRate || (currency === 'CNY' ? 1 : exchangeRates[currency + '_CNY']);
+                    // 直接使用当前汇率（不使用历史存储的汇率，确保与上面显示一致）
+                    storedExchangeRate = currency === 'CNY' ? 1 : exchangeRates[currency + '_CNY'];
+                    currentPrice = originalPrice * storedExchangeRate;
 
                     // 日志输出：根据货币类型显示不同格式
                     if (currency === 'CNY') {
