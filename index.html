@@ -1249,7 +1249,7 @@
         }
 
         /**
-         * 获取人民币价格（使用存储的汇率，确保上下一致）
+         * 获取人民币价格（简单逻辑：直接用页面显示的汇率）
          * @param {Object} priceData - 股价数据对象
          * @returns {number} 人民币价格
          */
@@ -1261,19 +1261,14 @@
                 return price.value;
             }
 
-            // 使用存储的汇率（在 setStockPrice 时存入）
-            if (price.exchangeRate) {
-                return price.value * price.exchangeRate;
+            // 简单逻辑：直接用页面显示的汇率
+            if (price.currency === 'USD') {
+                return price.value * exchangeRates.USD_CNY;
+            } else if (price.currency === 'HKD') {
+                return price.value * exchangeRates.HKD_CNY;
             }
 
-            // 兼容旧数据：如果没有存储汇率，使用全局配置
-            const fallbackRate = exchangeRates[price.currency + '_CNY'];
-            if (fallbackRate) {
-                console.warn(`⚠️ 使用 fallback 汇率: ${price.currency}_CNY = ${fallbackRate}`);
-                return price.value * fallbackRate;
-            }
-
-            throw new Error(`缺少汇率信息: ${price.currency}`);
+            throw new Error(`不支持的货币类型: ${price.currency}`);
         }
 
         // ========== 原有函数（将使用上述辅助函数重构） ==========
