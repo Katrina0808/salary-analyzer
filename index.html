@@ -2351,8 +2351,10 @@
                     originalPrice = priceData.value;
                     currency = priceData.currency;
                     // 强制使用当前汇率（与页面显示的"美元汇率"一致）
+                    console.log(`🔍 [汇率检查] currency=${currency}, exchangeRates.USD_CNY=${exchangeRates.USD_CNY}, exchangeRates.HKD_CNY=${exchangeRates.HKD_CNY}`);
                     storedExchangeRate = currency === 'CNY' ? 1 : exchangeRates[currency + '_CNY'];
                     currentPrice = originalPrice * storedExchangeRate;
+                    console.log(`🔍 [计算] ${originalPrice} × ${storedExchangeRate} = ${currentPrice}`);
 
                     // 日志输出：根据货币类型显示不同格式
                     if (currency === 'CNY') {
