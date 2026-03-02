@@ -2301,8 +2301,8 @@
 
         function performAnalysis(data, joinDate, cashData, grants, calcDate, companyKey) {
             // 强制变量同步：动态读取当前汇率，严禁硬编码
-            const currentUSD = window.currentUSD;
-            const currentHKD = window.currentHKD;
+            const currentUSD = exchangeRates.USD_CNY;
+            const currentHKD = exchangeRates.HKD_CNY;
 
             console.log('========================================');
             console.log('🔍 [开始分析] 公司:', companyKey);
