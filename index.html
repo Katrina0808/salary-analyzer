@@ -2350,11 +2350,16 @@
                     const priceData = getStockPrice(data.currentPrice, marketType);
                     originalPrice = priceData.value;
                     currency = priceData.currency;
-                    // 强制使用当前汇率（与页面显示的"美元汇率"一致）
-                    console.log(`🔍 [汇率检查] currency=${currency}, exchangeRates.USD_CNY=${exchangeRates.USD_CNY}, exchangeRates.HKD_CNY=${exchangeRates.HKD_CNY}`);
-                    storedExchangeRate = currency === 'CNY' ? 1 : exchangeRates[currency + '_CNY'];
+
+                    // 简单逻辑：直接用页面显示的汇率
+                    if (currency === 'USD') {
+                        storedExchangeRate = exchangeRates.USD_CNY;
+                    } else if (currency === 'HKD') {
+                        storedExchangeRate = exchangeRates.HKD_CNY;
+                    } else {
+                        storedExchangeRate = 1;
+                    }
                     currentPrice = originalPrice * storedExchangeRate;
-                    console.log(`🔍 [计算] ${originalPrice} × ${storedExchangeRate} = ${currentPrice}`);
 
                     // 日志输出：根据货币类型显示不同格式
                     if (currency === 'CNY') {
@@ -2373,9 +2378,15 @@
                     throw new Error('未设置回购价，请手动输入当前回购价后再分析。');
                 }
                 const curr = data.grantPrice?.[0]?.currency || 'USD';
-                const rate = curr === 'USD' ? exchangeRates.USD_CNY : exchangeRates.HKD_CNY;
-                storedExchangeRate = rate; // 非上市公司也记录汇率
-                currentPrice = price * rate;
+                // 简单逻辑：直接用页面显示的汇率
+                if (curr === 'USD') {
+                    storedExchangeRate = exchangeRates.USD_CNY;
+                } else if (curr === 'HKD') {
+                    storedExchangeRate = exchangeRates.HKD_CNY;
+                } else {
+                    storedExchangeRate = 1;
+                }
+                currentPrice = price * storedExchangeRate;
                 originalPrice = price;
                 currency = curr;
             }
@@ -2436,8 +2447,17 @@
                     grantTimeCurrency = 'USD';
                 }
 
-                // 行权价转换为人民币（使用存储的汇率，确保上下一致）
-                const grantPriceRate = grantTimeCurrency === 'CNY' ? 1 : storedExchangeRate;
+                // 行权价转换为人民币（简单逻辑：直接用页面显示的汇率）
+                let grantPriceRate;
+                if (grantTimeCurrency === 'CNY') {
+                    grantPriceRate = 1;
+                } else if (grantTimeCurrency === 'USD') {
+                    grantPriceRate = exchangeRates.USD_CNY;
+                } else if (grantTimeCurrency === 'HKD') {
+                    grantPriceRate = exchangeRates.HKD_CNY;
+                } else {
+                    grantPriceRate = 1;
+                }
 
                 return {
                     ...g,
@@ -2605,13 +2625,29 @@
             if (data.type === 'public') {
                 entryPrice = findClosestPrice(data.priceHistory, joinDate);
                 if (entryPrice) {
-                    const rate = storedExchangeRate;
+                    // 简单逻辑：直接用页面显示的汇率
+                    let rate;
+                    if (entryPrice.currency === 'USD') {
+                        rate = exchangeRates.USD_CNY;
+                    } else if (entryPrice.currency === 'HKD') {
+                        rate = exchangeRates.HKD_CNY;
+                    } else {
+                        rate = 1;
+                    }
                     entryPriceCNY = entryPrice.price * rate;
                 }
             } else {
                 entryPrice = findClosestGrantPrice(data.grantPrice, joinDate);
                 if (entryPrice) {
-                    const rate = storedExchangeRate;
+                    // 简单逻辑：直接用页面显示的汇率
+                    let rate;
+                    if (entryPrice.currency === 'USD') {
+                        rate = exchangeRates.USD_CNY;
+                    } else if (entryPrice.currency === 'HKD') {
+                        rate = exchangeRates.HKD_CNY;
+                    } else {
+                        rate = 1;
+                    }
                     entryPriceCNY = entryPrice.price * rate;
                 }
             }
