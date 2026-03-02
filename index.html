@@ -2153,6 +2153,11 @@
         }
 
         function performAnalysis(data, joinDate, cashData, grants, calcDate, companyKey) {
+            console.log('========================================');
+            console.log('🔍 [开始分析] 公司:', companyKey);
+            console.log('📊 [当前股价数据]', JSON.stringify(data.currentPrice, null, 2));
+            console.log('========================================');
+
             const joinYear = parseInt(joinDate.substring(0, 4));
             const joinMonth = parseInt(joinDate.substring(5, 7));
             const joinDateObj = new Date(joinYear, joinMonth - 1);
@@ -2200,6 +2205,7 @@
                     currentPrice = data.currentPrice.cny;
                     originalPrice = data.currentPrice.us || data.currentPrice.hk || 0;
                     currency = data.currentPrice.us ? 'USD' : 'HKD';
+                    console.log(`📈 [主股价-CNY路径] ${originalPrice} ${currency} → ¥${currentPrice.toFixed(2)}`);
                 } else {
                     // 没有获取实时价格，使用默认值并转换
                     const price = data.currentPrice.us || data.currentPrice.hk || 0;
@@ -2211,6 +2217,7 @@
                     currentPrice = price * rate;
                     originalPrice = price;
                     currency = curr;
+                    console.log(`📈 [主股价-转换路径] ${originalPrice} ${currency} × ${rate} = ¥${currentPrice.toFixed(2)}`);
                 }
             } else {
                 // 非上市公司
@@ -2258,16 +2265,21 @@
                     grantOriginalPrice = 10;
                     grantCurrency = 'USD';
                     grantCurrentPrice = 10 * exchangeRates.USD_CNY;
+                    console.log(`💰 [授予${g.date}] 豆包虚拟股: ${grantOriginalPrice} ${grantCurrency} = ¥${grantCurrentPrice.toFixed(2)}`);
                 } else if (g.market === 'hk' && data.currentPrice.hk) {
                     // 港股授予，使用港股价格
                     grantOriginalPrice = data.currentPrice.hk;
                     grantCurrency = 'HKD';
                     grantCurrentPrice = grantOriginalPrice * exchangeRates.HKD_CNY;
+                    console.log(`💰 [授予${g.date}] 港股: ${grantOriginalPrice} ${grantCurrency} × ${exchangeRates.HKD_CNY} = ¥${grantCurrentPrice.toFixed(2)}`);
                 } else if (g.market === 'us' && data.currentPrice.us) {
                     // 美股授予，使用美股价格
                     grantOriginalPrice = data.currentPrice.us;
                     grantCurrency = 'USD';
                     grantCurrentPrice = grantOriginalPrice * exchangeRates.USD_CNY;
+                    console.log(`💰 [授予${g.date}] 美股: ${grantOriginalPrice} ${grantCurrency} × ${exchangeRates.USD_CNY} = ¥${grantCurrentPrice.toFixed(2)}`);
+                } else {
+                    console.log(`💰 [授予${g.date}] 默认: ${originalPrice} ${currency} = ¥${currentPrice.toFixed(2)}`);
                 }
 
                 // 行权价：优先使用用户手动输入的值
