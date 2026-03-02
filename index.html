@@ -764,13 +764,8 @@
                     </div>
                     <div id="manualInputDiv" style="margin-top: 8px;">
                         <div style="font-size: 11px; color: #666; margin-bottom: 4px;">或手动输入股价：</div>
-                        <div style="display: flex; gap: 8px; align-items: center;">
-                            <input type="number" id="manualPrice" placeholder="输入价格" style="flex: 2; padding: 8px; border: 1.5px solid #E1F2FB; border-radius: 8px; font-size: 12px;" step="0.01">
-                            <select id="manualCurrency" style="flex: 1; padding: 8px; border: 1.5px solid #E1F2FB; border-radius: 8px; font-size: 12px; background-color: white;">
-                                <option value="USD">USD</option>
-                                <option value="HKD">HKD</option>
-                                <option value="CNY">CNY</option>
-                            </select>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="number" id="manualPrice" placeholder="手动输入（原币）" style="flex: 2; padding: 8px; border: 1.5px solid #E1F2FB; border-radius: 8px; font-size: 12px;" step="0.01">
                             <button class="add-grant-btn" style="flex: 1; font-size: 11px; padding: 6px;" onclick="useManualPrice()">
                                 确认
                             </button>
@@ -1012,35 +1007,22 @@
             console.log('初始化完成');
         }
 
-        // 默认汇率常量（唯一定义处）
-        const DEFAULT_EXCHANGE_RATES = {
-            USD_CNY: 7.25,
-            HKD_CNY: 0.93
-        };
-
-        // 当前使用的汇率
+        // 当前使用的汇率（必须从API获取）
         let exchangeRates = {
-            USD_CNY: DEFAULT_EXCHANGE_RATES.USD_CNY,
-            HKD_CNY: DEFAULT_EXCHANGE_RATES.HKD_CNY,
+            USD_CNY: null,
+            HKD_CNY: null,
             rateDate: null,  // 汇率基准日期
             lastUpdate: null,
             isFromAPI: false  // 标记是否从API获取
         };
-
-        // 手动输入股价的保护标记
-        let manualPriceSet = false;
+        // 同步到 window 对象，确保全局可访问
+        window.exchangeRates = exchangeRates;
 
         // 自动从API获取上月最后一天的汇率
         async function fetchHistoricalExchangeRates(calcDate) {
-            // 使用固定汇率（2026年3月最新汇率），避免API调用延迟
-            exchangeRates.USD_CNY = DEFAULT_EXCHANGE_RATES.USD_CNY;
-            exchangeRates.HKD_CNY = DEFAULT_EXCHANGE_RATES.HKD_CNY;
-            exchangeRates.RMB_CNY = 1;
-
-            console.log(`✅ 使用预设汇率: USD=${exchangeRates.USD_CNY}, HKD=${exchangeRates.HKD_CNY}`);
-
-            // 异步更新汇率（不阻塞页面）
-            fetchHistoricalExchangeRatesAsync(calcDate);
+            console.log('📡 开始从API获取汇率...');
+            // 直接调用异步函数获取汇率
+            await fetchHistoricalExchangeRatesAsync(calcDate);
         }
 
         async function fetchHistoricalExchangeRatesAsync(calcDate) {
@@ -1118,6 +1100,7 @@
                 if (usdRate && hkdRate) {
                     exchangeRates.USD_CNY = parseFloat(parseFloat(usdRate).toFixed(2));
                     exchangeRates.HKD_CNY = parseFloat(parseFloat(hkdRate).toFixed(2));
+                    exchangeRates.RMB_CNY = 1;
                     exchangeRates.rateDate = dateDisplayStr;
                     exchangeRates.lastUpdate = new Date();
                     exchangeRates.isFromAPI = true;
@@ -1132,11 +1115,13 @@
                     throw new Error('所有API尝试均失败');
                 }
             } catch (error) {
-                console.warn('⚠️ 自动获取汇率失败，使用默认值:', error.message);
-                exchangeRates.rateDate = dateDisplayStr;
+                console.error('❌ 汇率API获取失败:', error.message);
+                exchangeRates.USD_CNY = null;
+                exchangeRates.HKD_CNY = null;
+                exchangeRates.rateDate = null;
                 exchangeRates.isFromAPI = false;
 
-                // 更新页面显示（显示默认值）
+                // 更新页面显示错误状态
                 updateExchangeRateDisplay();
 
                 return false;
@@ -1147,10 +1132,14 @@
         function updateExchangeRateDisplay() {
             const display = document.getElementById('exchangeRateDisplay');
             if (display) {
-                const statusIcon = exchangeRates.isFromAPI ? '✅' : '⚠️';
-                const statusText = exchangeRates.isFromAPI ? '' : '<br><span style="color: #FF6090; font-size: 10px;">（API获取失败，使用默认值）</span>';
-
-                display.innerHTML = `${statusIcon} 美元汇率：${exchangeRates.USD_CNY}<br><span style="display: inline-block; width: 1.5em;">&nbsp;</span>港币汇率：${exchangeRates.HKD_CNY}${statusText}`;
+                if (!exchangeRates.USD_CNY || !exchangeRates.HKD_CNY) {
+                    // 汇率获取失败
+                    display.innerHTML = `❌ <span style="color: #FF6090;">汇率获取失败，请检查网络后刷新页面</span>`;
+                } else {
+                    // 汇率获取成功
+                    const statusIcon = exchangeRates.isFromAPI ? '✅' : '⚠️';
+                    display.innerHTML = `${statusIcon} 美元汇率：${exchangeRates.USD_CNY}<br><span style="display: inline-block; width: 1.5em;">&nbsp;</span>港币汇率：${exchangeRates.HKD_CNY}`;
+                }
             }
         }
 
@@ -1164,126 +1153,10 @@
             return date;
         }
 
-        // ========== 股价管理辅助函数（新的单一数据源设计） ==========
-
-        /**
-         * 读取股价数据（兼容新旧格式）
-         * @param {Object} priceData - 股价数据对象
-         * @param {string} market - 市场类型 ('us' 或 'hk')，用于旧数据兼容
-         * @returns {Object} { value, currency, source, timestamp }
-         */
-        function getStockPrice(priceData, market) {
-            if (!priceData) {
-                throw new Error('股价数据为空');
-            }
-
-            // 新格式：直接返回
-            if (priceData.value !== undefined && priceData.currency) {
-                return priceData;
-            }
-
-            // 旧格式兼容：根据市场类型选择正确的字段
-            if (market === 'hk' && priceData.hk) {
-                // 港股公司优先读取 hk 字段
-                return {
-                    value: priceData.hk,
-                    currency: 'HKD',
-                    source: priceData.source || 'legacy',
-                    exchangeRate: priceData.exchangeRate,  // 保留原有的汇率字段（如果有）
-                    timestamp: priceData.timestamp || Date.now()
-                };
-            }
-            if (market === 'us' && priceData.us) {
-                // 美股公司优先读取 us 字段
-                return {
-                    value: priceData.us,
-                    currency: 'USD',
-                    source: priceData.source || 'legacy',
-                    exchangeRate: priceData.exchangeRate,  // 保留原有的汇率字段（如果有）
-                    timestamp: priceData.timestamp || Date.now()
-                };
-            }
-
-            // 如果没有指定 market，按原逻辑（优先 us）
-            if (priceData.us) {
-                return {
-                    value: priceData.us,
-                    currency: 'USD',
-                    source: priceData.source || 'legacy',
-                    exchangeRate: priceData.exchangeRate,  // 保留原有的汇率字段（如果有）
-                    timestamp: priceData.timestamp || Date.now()
-                };
-            }
-            if (priceData.hk) {
-                return {
-                    value: priceData.hk,
-                    currency: 'HKD',
-                    source: priceData.source || 'legacy',
-                    exchangeRate: priceData.exchangeRate,  // 保留原有的汇率字段（如果有）
-                    timestamp: priceData.timestamp || Date.now()
-                };
-            }
-
-            throw new Error('无效的股价数据格式');
-        }
-
-        /**
-         * 设置股价数据（统一写入接口）
-         * @param {string} company - 公司名称
-         * @param {number} value - 股价原始值
-         * @param {string} currency - 货币类型 ('USD' 或 'HKD' 或 'CNY')
-         * @param {string} source - 来源 ('manual', 'api', 'preset')
-         * @param {number} exchangeRate - 实际使用的汇率（CNY则为1）
-         */
-        function setStockPrice(company, value, currency, source, exchangeRate) {
-            if (!companyData[company]) {
-                companyData[company] = {};
-            }
-            if (!companyData[company].currentPrice) {
-                companyData[company].currentPrice = {};
-            }
-
-            companyData[company].currentPrice = {
-                value: value,
-                currency: currency,
-                source: source,
-                exchangeRate: exchangeRate || 1,  // 存储实际使用的汇率
-                timestamp: Date.now()
-            };
-
-            console.log(`💾 [设置股价] ${company}: ${value} ${currency}, 汇率=${exchangeRate || 1} (${source})`);
-        }
-
-        /**
-         * 获取人民币价格（简单逻辑：直接用页面显示的汇率）
-         * @param {Object} priceData - 股价数据对象
-         * @returns {number} 人民币价格
-         */
-        function getCurrentPriceCNY(priceData) {
-            const price = getStockPrice(priceData);
-
-            // 如果已经是人民币，直接返回
-            if (price.currency === 'CNY') {
-                return price.value;
-            }
-
-            // 简单逻辑：直接用页面显示的汇率
-            if (price.currency === 'USD') {
-                return price.value * exchangeRates.USD_CNY;
-            } else if (price.currency === 'HKD') {
-                return price.value * exchangeRates.HKD_CNY;
-            }
-
-            throw new Error(`不支持的货币类型: ${price.currency}`);
-        }
-
-        // ========== 原有函数（将使用上述辅助函数重构） ==========
-
         // 使用手动输入的股价
         function useManualPrice() {
             const company = document.getElementById('company').value;
-            const inputPrice = parseFloat(document.getElementById('manualPrice').value);
-            const inputCurrency = document.getElementById('manualCurrency').value;
+            const manualPrice = parseFloat(document.getElementById('manualPrice').value);
             const priceStatus = document.getElementById('priceStatus');
 
             if (!company) {
@@ -1291,7 +1164,7 @@
                 return;
             }
 
-            if (!inputPrice || inputPrice <= 0) {
+            if (!manualPrice || manualPrice <= 0) {
                 alert('请输入有效的股价');
                 return;
             }
@@ -1300,42 +1173,35 @@
             if (!stockInfo) {
                 // 非上市公司
                 const data = companyData[company];
+                const currency = data.grantPrice?.[0]?.currency || 'USD';
+                const rate = currency === 'USD' ? exchangeRates.USD_CNY : exchangeRates.HKD_CNY;
+                const priceCNY = (manualPrice * rate).toFixed(2);
 
-                // 直接存储用户输入的值和货币，不做转换
                 if (data.currentBuyback) {
                     if (typeof data.currentBuyback === 'object') {
-                        data.currentBuyback.employed = inputPrice;
+                        data.currentBuyback.employed = manualPrice;
                     } else {
-                        data.currentBuyback = inputPrice;
+                        data.currentBuyback = manualPrice;
                     }
                 }
 
-                // 显示时根据货币类型决定格式
-                if (inputCurrency === 'CNY') {
-                    priceStatus.innerHTML = `✅ 已设置：<strong>¥${inputPrice.toFixed(2)}</strong>`;
-                } else {
-                    const rate = exchangeRates[inputCurrency + '_CNY'];
-                    const priceCNY = (inputPrice * rate).toFixed(2);
-                    priceStatus.innerHTML = `✅ 已设置：<strong>${inputPrice.toFixed(2)} ${inputCurrency}</strong> ≈ <strong>¥${priceCNY}</strong>`;
-                }
+                priceStatus.innerHTML = `✅ 已设置：<strong>${manualPrice.toFixed(2)} ${currency}</strong> ≈ <strong>¥${priceCNY}</strong>`;
                 priceStatus.style.color = '#4167B1';
             } else {
-                // 上市公司 - 直接存储用户输入的货币，不做转换
-                const rate = inputCurrency === 'CNY' ? 1 : exchangeRates[inputCurrency + '_CNY'];
-                setStockPrice(company, inputPrice, inputCurrency, 'manual', rate);
+                // 上市公司
+                const currency = stockInfo.market === 'us' ? 'USD' : 'HKD';
+                const rate = currency === 'USD' ? exchangeRates.USD_CNY : exchangeRates.HKD_CNY;
+                const priceCNY = (manualPrice * rate).toFixed(2);
 
-                // 标记为手动设置，防止被自动获取覆盖
-                manualPriceSet = true;
-                console.log('✅ [手动股价] 已设置为', inputPrice.toFixed(2), inputCurrency, '保护标记已启用');
-
-                // 显示时根据货币类型决定格式
-                if (inputCurrency === 'CNY') {
-                    priceStatus.innerHTML = `✅ 已设置：<strong>¥${inputPrice.toFixed(2)}</strong> (手动输入)`;
+                if (stockInfo.market === 'us') {
+                    companyData[company].currentPrice.us = manualPrice;
+                    companyData[company].currentPrice.cny = parseFloat(priceCNY);
                 } else {
-                    const rate = exchangeRates[inputCurrency + '_CNY'];
-                    const priceCNY = (inputPrice * rate).toFixed(2);
-                    priceStatus.innerHTML = `✅ 已设置：<strong>${inputPrice.toFixed(2)} ${inputCurrency}</strong> ≈ <strong>¥${priceCNY}</strong> (手动输入)<br><span style="font-size: 10px; color: #999;">汇率: ${inputCurrency}/CNY = ${rate}</span>`;
+                    companyData[company].currentPrice.hk = manualPrice;
+                    companyData[company].currentPrice.cny = parseFloat(priceCNY);
                 }
+
+                priceStatus.innerHTML = `✅ 已设置：<strong>${manualPrice.toFixed(2)} ${currency}</strong> ≈ <strong>¥${priceCNY}</strong>`;
                 priceStatus.style.color = '#4167B1';
             }
         }
@@ -1356,8 +1222,6 @@
 
                 if (!company) {
                     priceStatus.innerHTML = '选择公司后自动获取股价均值（180个自然日，即120个交易日）';
-                    // 清空公司时重置手动标记
-                    manualPriceSet = false;
                     return;
                 }
 
@@ -1367,22 +1231,7 @@
                 // 加载当前月份的固定汇率（不等待，立即使用预设汇率）
                 fetchHistoricalExchangeRates(calcDate);
 
-                // 根据公司市场类型设置货币选择器的默认值
-                const manualCurrencySelect = document.getElementById('manualCurrency');
-                if (manualCurrencySelect && isPublic) {
-                    const stockInfo = stockCodeMap[company];
-                    const defaultCurrency = stockInfo.market === 'us' ? 'USD' : 'HKD';
-                    manualCurrencySelect.value = defaultCurrency;
-                    console.log(`💱 [货币选择器] 默认设置为 ${defaultCurrency}`);
-                } else if (manualCurrencySelect) {
-                    // 非上市公司默认USD
-                    manualCurrencySelect.value = 'USD';
-                }
-
                 if (isPublic) {
-                    // 切换公司时重置手动标记,允许自动获取新公司的股价
-                    manualPriceSet = false;
-
                     priceStatus.innerHTML = '⏳ 正在自动获取股价均值（180个自然日，即120个交易日）...';
                     priceStatus.style.color = '#4167B1';
 
@@ -1413,29 +1262,6 @@
 
 
             if (!company || !stockCodeMap[company]) {
-                return;
-            }
-
-            // 如果用户已手动设置股价，不自动获取
-            if (manualPriceSet) {
-                console.log('⚠️ [跳过自动获取] 用户已手动设置股价');
-                try {
-                    const priceData = getStockPrice(companyData[company].currentPrice);
-                    const priceCNY = getCurrentPriceCNY(companyData[company].currentPrice);
-
-                    // 根据货币类型显示不同格式
-                    if (priceData.currency === 'CNY') {
-                        priceStatus.innerHTML = `✅ 已设置：<strong>¥${priceData.value.toFixed(2)}</strong> (手动输入)`;
-                    } else {
-                        priceStatus.innerHTML = `✅ 已设置：<strong>${priceData.value.toFixed(2)} ${priceData.currency}</strong> ≈ <strong>¥${priceCNY.toFixed(2)}</strong> (手动输入)`;
-                    }
-
-                    priceStatus.style.color = '#4167B1';
-                    manualInputDiv.style.display = 'block';
-                } catch (error) {
-                    console.warn('读取手动设置的股价失败，将重新获取', error);
-                    manualPriceSet = false; // 重置标记
-                }
                 return;
             }
 
@@ -1612,21 +1438,26 @@
                 const priceCNY = (avgPrice * rate).toFixed(2);
 
 
-                // 更新companyData - 使用新的统一写入接口
-                const apiCurrency = stockInfo.market === 'us' ? 'USD' : 'HKD';
-                setStockPrice(company, parseFloat(avgPriceRounded), apiCurrency, 'api', rate);
-                // 注释掉港股获取，避免速度慢
-                // if (stockInfo.hkSymbol) {
-                //     await fetchHKPrice(company, stockInfo.hkSymbol, calcDate);
-                // }
+                // 更新companyData
+                if (stockInfo.market === 'us') {
+                    companyData[company].currentPrice.us = parseFloat(avgPriceRounded);
+                    companyData[company].currentPrice.cny = parseFloat(priceCNY);
+                    // 注释掉港股获取，避免速度慢
+                    // if (stockInfo.hkSymbol) {
+                    //     await fetchHKPrice(company, stockInfo.hkSymbol, calcDate);
+                    // }
+                } else {
+                    companyData[company].currentPrice.hk = parseFloat(avgPriceRounded);
+                    companyData[company].currentPrice.cny = parseFloat(priceCNY);
+                }
 
                 const t2Actual = new Date(t1);
                 t2Actual.setDate(t2Actual.getDate() - (last120.length - 1));
                 const t2ActualStr = `${t2Actual.getFullYear()}.${t2Actual.getMonth() + 1}.${t2Actual.getDate()}`;
                 const t1DisplayStr = `${t1.getFullYear()}.${t1.getMonth() + 1}.${t1.getDate()}`;
 
-                // rate 已在前面 line 1576 定义，这里直接使用
-                const successHTML = `✅ 股价均值（180个自然日）：<strong>${avgPriceRounded} ${currency}</strong> ≈ <strong>¥${priceCNY}</strong><br><span style="font-size: 10px; color: #999;">期间: ${t2ActualStr}~${t1DisplayStr} (${last120.length}个交易日) | 汇率: ${currency}/CNY = ${rate} | <a href="javascript:fetchRealTimePrice()" style="color: #4167B1;">🔄 重新获取</a></span>`;
+
+                const successHTML = `✅ 股价均值（180个自然日）：<strong>${avgPriceRounded} ${currency}</strong> ≈ <strong>¥${priceCNY}</strong><br><span style="font-size: 10px; color: #999;">期间: ${t2ActualStr}~${t1DisplayStr} (${last120.length}个交易日) | <a href="javascript:fetchRealTimePrice()" style="color: #4167B1;">🔄 重新获取</a></span>`;
                 priceStatus.innerHTML = successHTML;
                 priceStatus.style.color = '#4167B1';
 
@@ -1703,9 +1534,10 @@
 
                             if (last120.length > 0) {
                                 const avgPrice = last120.reduce((sum, p) => sum + p, 0) / last120.length;
+                                companyData[company].currentPrice.hk = parseFloat(avgPrice.toFixed(2));
 
-                                // 使用新的统一写入接口
-                                setStockPrice(company, parseFloat(avgPrice.toFixed(2)), 'HKD', 'api', exchangeRates.HKD_CNY);
+                                const rate = exchangeRates.HKD_CNY;
+                                companyData[company].currentPrice.cny = parseFloat((avgPrice * rate).toFixed(2));
                                 break;
                             }
                         }
@@ -2226,9 +2058,7 @@
 
                 // 提前检查股价数据是否可用
                 if (data.type === 'public') {
-                    try {
-                        getStockPrice(data.currentPrice);
-                    } catch (error) {
+                    if (!data.currentPrice.us && !data.currentPrice.hk && !data.currentPrice.cny) {
                         // 显示手动输入框
                         document.getElementById('manualInputDiv').style.display = 'block';
                         throw new Error('请先获取或手动输入股价再进行分析。\n\n1. 等待自动获取完成（看到✅符号）\n2. 或使用下方手动输入框');
@@ -2291,159 +2121,397 @@
                 return currentPriceCNY; // 没有该年份数据，使用当前价格
             }
 
-            // 将历史价格转换为人民币 - 统一使用全局汇率
-            let rate;
+            // 将历史价格转换为人民币
+            const rates = window.exchangeRates;
+            if (!rates || !rates.USD_CNY || !rates.HKD_CNY) {
+                console.error('❌ 汇率未初始化');
+                return currentPriceCNY;
+            }
+            let rate = 1;
             if (historicalData.currency === 'USD') {
-                rate = exchangeRates.USD_CNY;
+                rate = rates.USD_CNY;
             } else if (historicalData.currency === 'HKD') {
-                rate = exchangeRates.HKD_CNY;
-            } else {
-                rate = 1; // CNY 或其他
+                rate = rates.HKD_CNY;
             }
             const historicalPriceCNY = historicalData.price * rate;
 
             return historicalPriceCNY;
         }
 
-      function performAnalysis(data, joinDate, cashData, grants, calcDate, companyKey) {
-    // 【核心修复 1】强制同步：直接读取全局对象，并增加兜底逻辑防止崩溃
-    const rates = window.exchangeRates || DEFAULT_EXCHANGE_RATES;
-    const currentUSD = rates.USD_CNY;
-    const currentHKD = rates.HKD_CNY;
+        function performAnalysis(data, joinDate, cashData, grants, calcDate, companyKey) {
+            // 检查汇率是否已成功获取
+            if (!window.exchangeRates || !window.exchangeRates.USD_CNY || !window.exchangeRates.HKD_CNY) {
+                throw new Error('汇率数据未获取成功，无法进行计算。\n\n请检查网络连接后刷新页面重试。');
+            }
 
-    console.log('🚀 计算引擎启动，当前汇率：', currentUSD, currentHKD);
+            // 使用局部变量引用全局汇率
+            const exchangeRates = window.exchangeRates;
+            console.log('🔍 [performAnalysis] 当前使用汇率:', exchangeRates.USD_CNY, exchangeRates.HKD_CNY);
 
-    const joinYear = parseInt(joinDate.substring(0, 4));
-    const joinMonth = parseInt(joinDate.substring(5, 7));
-    const joinDateObj = new Date(joinYear, joinMonth - 1);
-    const calcDateObj = new Date(calcDate);
-    const calcYear = calcDateObj.getFullYear();
-    const calcMonth = calcDateObj.getMonth();
+            const joinYear = parseInt(joinDate.substring(0, 4));
+            const joinMonth = parseInt(joinDate.substring(5, 7));
+            const joinDateObj = new Date(joinYear, joinMonth - 1);
 
-    const targetStartDate = new Date(calcYear, calcMonth + 1, 1);
-    const targetEndDate = new Date(calcYear + 1, calcMonth + 1, 0);
-    const actualStartDate = new Date(calcYear - 1, calcMonth + 1, 1);
-    const actualEndDate = new Date(calcYear, calcMonth + 1, 0);
+            // 测算日期
+            const calcDateObj = new Date(calcDate);
+            const calcYear = calcDateObj.getFullYear();
+            const calcMonth = calcDateObj.getMonth(); // 0-11
 
-    const monthsEmployed = (calcDateObj - joinDateObj) / (1000 * 60 * 60 * 24 * 30);
-    const yearsEmployed = monthsEmployed / 12;
+            // 目标期间：(测算月+1)当年 到 测算月次年
+            // 如 2026.2 → 2026.3.1 到 2027.2.28/29
+            const targetStartDate = new Date(calcYear, calcMonth + 1, 1);
+            const targetEndDate = new Date(calcYear + 1, calcMonth + 1, 0); // 次年测算月的最后一天
 
-    const targetAnnualCash = cashData.baseSalary * 12 + cashData.targetBonus + cashData.otherCash;
-    const actualAnnualCash = cashData.baseSalary * 12 + cashData.actualBonus + cashData.otherCash;
+            // 实际期间：(测算月+1)去年 到 测算月当年
+            // 如 2026.2 → 2025.3.1 到 2026.2.28/29
+            const actualStartDate = new Date(calcYear - 1, calcMonth + 1, 1);
+            const actualEndDate = new Date(calcYear, calcMonth + 1, 0); // 当年测算月的最后一天
 
-    let currentPrice = 0;
-    let currency = 'CNY';
-    let originalPrice = 0;
-    let storedExchangeRate = 1;
+            const monthsEmployed = (calcDateObj - joinDateObj) / (1000 * 60 * 60 * 24 * 30);
+            const yearsEmployed = monthsEmployed / 12;
 
-    if (data.type === 'public') {
-        const companyInfo = stockCodeMap[companyKey];
-        const marketType = companyInfo ? companyInfo.market : undefined;
-        const priceData = getStockPrice(data.currentPrice, marketType);
-        originalPrice = priceData.value;
-        currency = priceData.currency;
-        storedExchangeRate = currency === 'USD' ? currentUSD : (currency === 'HKD' ? currentHKD : 1);
-        currentPrice = originalPrice * storedExchangeRate;
-    } else {
-        const price = data.currentBuyback?.employed || data.currentBuyback || 0;
-        const curr = data.grantPrice?.[0]?.currency || 'USD';
-        storedExchangeRate = curr === 'USD' ? currentUSD : (curr === 'HKD' ? currentHKD : 1);
-        currentPrice = price * storedExchangeRate;
-        originalPrice = price;
-        currency = curr;
-    }
+            // 计算目标现金和实际现金
+            const targetAnnualCash = cashData.baseSalary * 12 + cashData.targetBonus + cashData.otherCash;
+            const actualAnnualCash = cashData.baseSalary * 12 + cashData.actualBonus + cashData.otherCash;
 
-    let targetEquityValue = 0;
-    let actualEquityValue = 0;
-    let totalEquityValue = 0;
-    let vestedEquityValue = 0;
-    let targetLTIValue = 0;
-    let actualLTIValue = 0;
+            // 获取当前股价（人民币）
+            let currentPrice = 0;
+            let currency = 'CNY';
+            let originalPrice = 0;
 
-    const grantsWithCNY = grants.map(g => {
-        if (g.type === 'lti') {
-            return { ...g, priceCNY: 0, priceOriginal: 0, currentPriceCNY: 1, currentPriceOriginal: 1, currency: 'CNY', grantPriceCurrency: 'CNY', exchangeRate: 1, grantPriceRate: 1 };
+            if (data.type === 'public') {
+                // 确保currentPrice对象存在
+                if (!data.currentPrice) {
+                    data.currentPrice = {};
+                }
+
+                // 检查是否有可用的股价数据
+                if (!data.currentPrice.us && !data.currentPrice.hk && !data.currentPrice.cny) {
+                    throw new Error('未获取到股价数据。\n\n请选择公司后等待自动获取完成，或使用下方手动输入框输入股价。\n\n如果自动获取一直失败，可能是网络环境限制。');
+                }
+
+                // 优先使用已转换的人民币价格
+                if (data.currentPrice.cny) {
+                    currentPrice = data.currentPrice.cny;
+                    originalPrice = data.currentPrice.us || data.currentPrice.hk || 0;
+                    currency = data.currentPrice.us ? 'USD' : 'HKD';
+                } else {
+                    // 没有获取实时价格，使用默认值并转换
+                    const price = data.currentPrice.us || data.currentPrice.hk || 0;
+                    if (price === 0) {
+                        throw new Error('股价为空，请手动输入股价后再分析。');
+                    }
+                    const curr = data.currentPrice.us ? 'USD' : 'HKD';
+                    const rate = curr === 'USD' ? exchangeRates.USD_CNY : exchangeRates.HKD_CNY;
+                    currentPrice = price * rate;
+                    originalPrice = price;
+                    currency = curr;
+                }
+            } else {
+                // 非上市公司
+                const price = data.currentBuyback?.employed || data.currentBuyback || 0;
+                if (price === 0) {
+                    throw new Error('未设置回购价，请手动输入当前回购价后再分析。');
+                }
+                const curr = data.grantPrice?.[0]?.currency || 'USD';
+                const rate = curr === 'USD' ? exchangeRates.USD_CNY : exchangeRates.HKD_CNY;
+                currentPrice = price * rate;
+                originalPrice = price;
+                currency = curr;
+            }
+
+            // 分别计算目标期间和实际期间的收益（全部用人民币）
+            let targetEquityValue = 0;  // 未来一年会归属的股票价值
+            let actualEquityValue = 0;  // 过去一年已归属的股票价值
+            let totalEquityValue = 0;    // 所有股票的总价值（用于显示）
+            let vestedEquityValue = 0;   // 截止测算日期已归属的总价值
+            let targetLTIValue = 0;      // 未来一年会归属的长期现金激励
+            let actualLTIValue = 0;      // 过去一年已归属的长期现金激励
+
+            // 转换后的行权价（人民币）
+            const grantsWithCNY = grants.map(g => {
+                // LTI（长期现金激励）不需要股价计算，直接返回
+                if (g.type === 'lti') {
+                    return {
+                        ...g,
+                        priceCNY: 0,
+                        priceOriginal: 0,
+                        currentPriceCNY: 1, // 设为1，使得单期价值等于单期金额
+                        currentPriceOriginal: 1,
+                        currency: 'CNY',
+                        grantPriceCurrency: 'CNY',
+                        exchangeRate: 1,
+                        grantPriceRate: 1
+                    };
+                }
+
+                // 根据授予记录的市场类型，选择对应价格
+                let grantCurrentPrice = currentPrice; // 默认使用主市场价格
+                let grantCurrency = currency;
+                let grantOriginalPrice = originalPrice;
+
+                // 豆包虚拟股：使用固定价格10美元
+                if (g.stockType === 'doubao') {
+                    grantOriginalPrice = 10;
+                    grantCurrency = 'USD';
+                    grantCurrentPrice = 10 * exchangeRates.USD_CNY;
+                } else if (g.market === 'hk' && data.currentPrice.hk) {
+                    // 港股授予，使用港股价格
+                    grantOriginalPrice = data.currentPrice.hk;
+                    grantCurrency = 'HKD';
+                    grantCurrentPrice = grantOriginalPrice * exchangeRates.HKD_CNY;
+                } else if (g.market === 'us' && data.currentPrice.us) {
+                    // 美股授予，使用美股价格
+                    grantOriginalPrice = data.currentPrice.us;
+                    grantCurrency = 'USD';
+                    grantCurrentPrice = grantOriginalPrice * exchangeRates.USD_CNY;
+                }
+
+                // 行权价：优先使用用户手动输入的值
+                let grantTimePrice = g.price || 0; // 用户输入的行权价
+                let grantTimeCurrency = grantCurrency;
+
+                // 如果用户没有输入行权价，小红书默认2美金
+                if (!g.price && companyKey === 'xiaohongshu') {
+                    grantTimePrice = 2;
+                    grantTimeCurrency = 'USD';
+                }
+
+                // 行权价转换为人民币
+                const grantPriceRate = grantTimeCurrency === 'USD' ? exchangeRates.USD_CNY : (grantTimeCurrency === 'HKD' ? exchangeRates.HKD_CNY : 1);
+
+                // 计算当前股价使用的汇率
+                const actualRate = grantCurrency === 'USD' ? exchangeRates.USD_CNY : (grantCurrency === 'HKD' ? exchangeRates.HKD_CNY : 1);
+
+                return {
+                    ...g,
+                    priceCNY: grantTimePrice * grantPriceRate,
+                    priceOriginal: grantTimePrice,
+                    currentPriceCNY: grantCurrentPrice,
+                    currentPriceOriginal: grantOriginalPrice,
+                    currency: grantCurrency,
+                    grantPriceCurrency: grantTimeCurrency,
+                    exchangeRate: actualRate,
+                    grantPriceRate: grantPriceRate
+                };
+            });
+
+            grantsWithCNY.forEach(grant => {
+                // 判断该笔授予在测算日期是否已完全归属
+                const grantDate = new Date(grant.date);
+                const grantEndDate = new Date(grantDate);
+                grantEndDate.setFullYear(grantEndDate.getFullYear() + grant.vesting);
+                const isFullyVested = calcDateObj >= grantEndDate;
+
+                // 长期现金激励单独处理
+                if (grant.type === 'lti') {
+                    // 计算长期现金激励的归属金额（直接按金额，无股价差）
+                    // getVestedSharesInPeriod 对于LTI返回的就是归属的金额
+
+                    // 计算未来一年会归属的金额
+                    const targetVestedAmount = getVestedSharesInPeriod(grant, targetStartDate, targetEndDate);
+                    if (!isFullyVested && targetVestedAmount > 0) {
+                        targetLTIValue += targetVestedAmount;
+                    }
+
+                    // 计算过去一年已归属的金额
+                    const actualVestedAmount = getVestedSharesInPeriod(grant, actualStartDate, actualEndDate);
+                    actualLTIValue += actualVestedAmount;
+                } else {
+                    // 股票类激励（option/rsu/bonus）
+                    // 计算未来一年会归属的股数
+                    // 规则：如果入职授予到期后未追增，该笔股票不计入目标总包
+                    const targetVestedShares = getVestedSharesInPeriod(grant, targetStartDate, targetEndDate);
+                    if (!isFullyVested && targetVestedShares > 0) {
+                        // 只有未完全归属的授予，且未来还有归属，才计入目标
+                        targetEquityValue += targetVestedShares * grant.currentPriceCNY;
+                    }
+
+                    // 计算过去一年已归属的股数（所有授予都算）
+                    const actualVestedShares = getVestedSharesInPeriod(grant, actualStartDate, actualEndDate);
+                    actualEquityValue += actualVestedShares * grant.currentPriceCNY;
+
+                    // 计算所有股票的总价值（按当前市价）
+                    totalEquityValue += grant.amount * grant.currentPriceCNY;
+
+                    // 计算截止测算日期已归属的总价值（按当前市价）
+                    const vestedAtCalcDate = getVestedAmountAtDate(grant, calcDateObj);
+                    vestedEquityValue += vestedAtCalcDate * grant.currentPriceCNY;
+                }
+            });
+
+            // 计算股票归属明细（按授予记录，显示股数）
+            const targetEquityShares = [];  // 目标期间内每笔授予归属的股数
+            const actualEquityShares = [];  // 实际期间内每笔授予归属的股数
+            let targetTotalShares = 0;
+            let actualTotalShares = 0;
+
+            grantsWithCNY.forEach((grant, index) => {
+                const grantDate = new Date(grant.date);
+                let targetSharesThisGrant = 0;
+                let actualSharesThisGrant = 0;
+
+                for (let i = 1; i <= grant.vesting; i++) {
+                    const vestDate = new Date(grantDate);
+                    vestDate.setFullYear(vestDate.getFullYear() + i);
+                    const perYear = Math.floor(grant.amount / grant.vesting);
+
+                    // 判断是否在目标期间
+                    if (vestDate >= targetStartDate && vestDate <= targetEndDate) {
+                        targetSharesThisGrant += perYear;
+                    }
+
+                    // 判断是否在实际期间
+                    if (vestDate >= actualStartDate && vestDate <= actualEndDate) {
+                        actualSharesThisGrant += perYear;
+                    }
+                }
+
+                if (targetSharesThisGrant > 0) {
+                    targetEquityShares.push({
+                        index: index + 1,
+                        date: grant.date,
+                        shares: targetSharesThisGrant
+                    });
+                    targetTotalShares += targetSharesThisGrant;
+                }
+
+                if (actualSharesThisGrant > 0) {
+                    actualEquityShares.push({
+                        index: index + 1,
+                        date: grant.date,
+                        shares: actualSharesThisGrant
+                    });
+                    actualTotalShares += actualSharesThisGrant;
+                }
+            });
+
+            // 生成目标股票备注
+            let targetEquityText = '';
+            if (targetEquityShares.length > 0) {
+                const sharesList = targetEquityShares.map(item => `<span style="color: #4167B1;">${item.shares.toLocaleString()}</span>`).join(' + ');
+                targetEquityText = `目标周期内归属 <strong><span style="color: #4167B1;">${targetTotalShares.toLocaleString()}</span>股</strong>${targetEquityShares.length > 1 ? ` = ${sharesList}` : ''}；价值：¥${formatAmount(Math.round(targetEquityValue))}`;
+            } else {
+                targetEquityText = '目标周期内无股票归属';
+            }
+
+            // 生成实际股票备注
+            let actualEquityText = '';
+            if (actualEquityShares.length > 0) {
+                const sharesList = actualEquityShares.map(item => `<span style="color: #4167B1;">${item.shares.toLocaleString()}</span>`).join(' + ');
+                actualEquityText = `实际周期内归属 <strong><span style="color: #4167B1;">${actualTotalShares.toLocaleString()}</span>股</strong>${actualEquityShares.length > 1 ? ` = ${sharesList}` : ''}；价值：¥${formatAmount(Math.round(actualEquityValue))}`;
+            } else {
+                actualEquityText = '实际周期内无股票归属';
+            }
+
+            // 计算实发奖金月数
+            const actualBonusMonths = cashData.baseSalary > 0 ? (cashData.actualBonus / cashData.baseSalary).toFixed(1) : 0;
+
+            // 计算目标奖金月数
+            const targetBonusMonths = cashData.baseSalary > 0 ? (cashData.targetBonus / cashData.baseSalary).toFixed(1) : 0;
+
+            // 奖金月数颜色判断
+            const bonusMonthsColor = parseFloat(actualBonusMonths) >= parseFloat(targetBonusMonths) ? '#4167B1' : '#FF6090';
+
+            // 奖金月数比较文字
+            let bonusComparison = '';
+            if (parseFloat(actualBonusMonths) > parseFloat(targetBonusMonths)) {
+                bonusComparison = `实际奖金月数（${actualBonusMonths}月）<strong style="color: #4167B1;">大于</strong>目标奖金月数（${targetBonusMonths}月）`;
+            } else if (parseFloat(actualBonusMonths) === parseFloat(targetBonusMonths)) {
+                bonusComparison = `实际奖金月数（${actualBonusMonths}月）<strong style="color: #4167B1;">等于</strong>目标奖金月数（${targetBonusMonths}月）`;
+            } else {
+                bonusComparison = `实际奖金月数（${actualBonusMonths}月）<strong style="color: #FF6090;">小于</strong>目标奖金月数（${targetBonusMonths}月）`;
+            }
+
+            // 测算日期和周期
+            const calcDateObj2 = new Date(calcDate);
+            const calcYear2 = calcDateObj2.getFullYear();
+            const calcMonth2 = calcDateObj2.getMonth() + 1;
+            let periodText = '';
+            if (calcMonth2 === 12) {
+                periodText = `目标周期：${calcYear2 + 1}.1-${calcYear2 + 1}.12<br>实际周期：${calcYear2}.1-${calcYear2}.12`;
+            } else {
+                const nextMonth = calcMonth2 + 1;
+                periodText = `目标周期：${calcYear2}.${nextMonth}-${calcYear2 + 1}.${calcMonth2}<br>实际周期：${calcYear2 - 1}.${nextMonth}-${calcYear2}.${calcMonth2}`;
+            }
+
+            // 计算目标总包和实际总包
+            const targetTotalComp = targetAnnualCash + targetEquityValue;
+            const actualTotalComp = actualAnnualCash + actualEquityValue;
+
+            // 当前已实现总包（年均）
+            const currentRealizedComp = actualAnnualCash + vestedEquityValue / yearsEmployed;
+
+            let entryPrice = null;
+            let entryPriceCNY = 0;
+            if (data.type === 'public') {
+                entryPrice = findClosestPrice(data.priceHistory, joinDate);
+                if (entryPrice) {
+                    const rate = entryPrice.currency === 'USD' ? exchangeRates.USD_CNY : exchangeRates.HKD_CNY;
+                    entryPriceCNY = entryPrice.price * rate;
+                }
+            } else {
+                entryPrice = findClosestGrantPrice(data.grantPrice, joinDate);
+                if (entryPrice) {
+                    const rate = entryPrice.currency === 'USD' ? exchangeRates.USD_CNY : exchangeRates.HKD_CNY;
+                    entryPriceCNY = entryPrice.price * rate;
+                }
+            }
+
+            const priceChange = entryPriceCNY > 0 ? ((currentPrice - entryPriceCNY) / entryPriceCNY * 100) : null;
+
+            let equityProfile = '';
+            let equityBadge = '';
+            if (priceChange === null) {
+                equityProfile = '数据不足';
+                equityBadge = 'warning';
+            } else if (priceChange < -30) {
+                equityProfile = '深套型 🔴';
+                equityBadge = 'danger';
+            } else if (priceChange > 30) {
+                equityProfile = '获利型 🟢';
+                equityBadge = 'success';
+            } else {
+                equityProfile = '平稳型 🟡';
+                equityBadge = 'warning';
+            }
+
+            return {
+                data,
+                companyKey,
+                joinDate,
+                cashData,
+                grants: grantsWithCNY,
+                targetAnnualCash,
+                actualAnnualCash,
+                targetEquityValue,      // 未来一年会归属的股票价值
+                actualEquityValue,      // 过去一年已归属的股票价值
+                totalEquityValue,       // 所有股票总价值
+                vestedEquityValue,      // 截止测算日期已归属总价值
+                targetLTIValue,         // 未来一年会归属的长期现金激励
+                actualLTIValue,         // 过去一年已归属的长期现金激励
+                targetTotalComp: targetTotalComp + targetLTIValue,
+                actualTotalComp: actualTotalComp + actualLTIValue,
+                currentRealizedComp,
+                entryPrice,
+                currentPrice,           // 人民币价格
+                currentPriceOriginal: originalPrice,  // 原始货币价格
+                currency,               // 原始货币
+                priceChange,
+                equityProfile,
+                equityBadge,
+                yearsEmployed,
+                calcDate,
+                exchangeRate: currency === 'USD' ? exchangeRates.USD_CNY : exchangeRates.HKD_CNY,
+                targetEquityText,       // 目标股票备注文本
+                actualEquityText,       // 实际股票备注文本
+                periodText,             // 测算周期文本
+                bonusMonthsColor,       // 奖金月数颜色
+                bonusComparison,        // 奖金月数比较文本
+                targetBonusMonths,      // 目标奖金月数
+                actualBonusMonths       // 实际奖金月数
+            };
         }
-        let grantOriginalPrice = (g.stockType === 'doubao') ? 10 : originalPrice;
-        let grantCurrency = (g.stockType === 'doubao') ? 'USD' : currency;
-        let actualRate = (grantCurrency === 'USD') ? currentUSD : (grantCurrency === 'HKD' ? currentHKD : 1);
-        let grantCurrentPrice = grantOriginalPrice * actualRate;
-        let grantTimePrice = g.price || 0;
-        let grantTimeCurrency = (company === 'xiaohongshu' && !g.price) ? 'USD' : grantCurrency;
-        if (company === 'xiaohongshu' && !g.price) grantTimePrice = 2;
-        let grantPriceRate = (grantTimeCurrency === 'CNY') ? 1 : (grantTimeCurrency === 'USD' ? currentUSD : currentHKD);
-
-        return {
-            ...g,
-            priceCNY: grantTimePrice * grantPriceRate,
-            priceOriginal: grantTimePrice,
-            currentPriceCNY: grantCurrentPrice,
-            currentPriceOriginal: grantOriginalPrice,
-            currency: grantCurrency,
-            grantPriceCurrency: grantTimeCurrency,
-            exchangeRate: actualRate,
-            grantPriceRate: grantPriceRate
-        };
-    });
-
-    grantsWithCNY.forEach(grant => {
-        const grantDate = new Date(grant.date);
-        const grantEndDate = new Date(grantDate);
-        grantEndDate.setFullYear(grantEndDate.getFullYear() + grant.vesting);
-        const isFullyVested = calcDateObj >= grantEndDate;
-
-        if (grant.type === 'lti') {
-            const targetVestedAmount = getVestedSharesInPeriod(grant, targetStartDate, targetEndDate);
-            if (!isFullyVested) targetLTIValue += targetVestedAmount;
-            actualLTIValue += getVestedSharesInPeriod(grant, actualStartDate, actualEndDate);
-        } else {
-            const targetVestedShares = getVestedSharesInPeriod(grant, targetStartDate, targetEndDate);
-            if (!isFullyVested) targetEquityValue += targetVestedShares * grant.currentPriceCNY;
-            actualEquityValue += getVestedSharesInPeriod(grant, actualStartDate, actualEndDate) * grant.currentPriceCNY;
-            totalEquityValue += grant.amount * grant.currentPriceCNY;
-            vestedEquityValue += getVestedAmountAtDate(grant, calcDateObj) * grant.currentPriceCNY;
-        }
-    });
-
-    const targetEquityShares = [];
-    const actualEquityShares = [];
-    let targetTotalShares = 0;
-    let actualTotalShares = 0;
-
-    grantsWithCNY.forEach((grant, index) => {
-        const grantDate = new Date(grant.date);
-        let tShares = 0; let aShares = 0;
-        for (let i = 1; i <= grant.vesting; i++) {
-            const vestDate = new Date(grantDate);
-            vestDate.setFullYear(vestDate.getFullYear() + i);
-            const perYear = Math.floor(grant.amount / grant.vesting);
-            if (vestDate >= targetStartDate && vestDate <= targetEndDate) tShares += perYear;
-            if (vestDate >= actualStartDate && vestDate <= actualEndDate) aShares += perYear;
-        }
-        if (tShares > 0) { targetEquityShares.push({ index: index + 1, date: grant.date, shares: tShares }); targetTotalShares += tShares; }
-        if (aShares > 0) { actualEquityShares.push({ index: index + 1, date: grant.date, shares: aShares }); actualTotalShares += aShares; }
-    });
-
-    let targetEquityText = targetEquityShares.length > 0 ? `目标周期内归属 <strong>${targetTotalShares.toLocaleString()}股</strong>；价值：¥${formatAmount(Math.round(targetEquityValue))}` : '目标周期内无股票归属';
-    let actualEquityText = actualEquityShares.length > 0 ? `实际周期内归属 <strong>${actualTotalShares.toLocaleString()}股</strong>；价值：¥${formatAmount(Math.round(actualEquityValue))}` : '实际周期内无股票归属';
-
-    const actualBonusMonths = cashData.baseSalary > 0 ? (cashData.actualBonus / cashData.baseSalary).toFixed(1) : 0;
-    const targetBonusMonths = cashData.baseSalary > 0 ? (cashData.targetBonus / cashData.baseSalary).toFixed(1) : 0;
-    const bonusComparison = parseFloat(actualBonusMonths) >= parseFloat(targetBonusMonths) ? `实际月数（${actualBonusMonths}月）<strong style="color: #4167B1;">大于等于</strong>目标（${targetBonusMonths}月）` : `实际月数（${actualBonusMonths}月）<strong style="color: #FF6090;">小于</strong>目标（${targetBonusMonths}月）`;
-
-    const calcMonth2 = calcDateObj.getMonth() + 1;
-    const periodText = calcMonth2 === 12 ? `目标：${calcYear + 1}.1-${calcYear + 1}.12<br>实际：${calcYear}.1-${calcYear}.12` : `目标：${calcYear}.${calcMonth2 + 1}-${calcYear + 1}.${calcMonth2}<br>实际：${calcYear - 1}.${calcMonth2 + 1}-${calcYear}.${calcMonth2}`;
-
-    return {
-        data, companyKey, joinDate, cashData, grants: grantsWithCNY,
-        targetAnnualCash, actualAnnualCash, targetEquityValue, actualEquityValue, totalEquityValue, vestedEquityValue,
-        targetLTIValue, actualLTIValue, targetTotalComp: targetAnnualCash + targetEquityValue + targetLTIValue,
-        actualTotalComp: actualAnnualCash + actualEquityValue + actualLTIValue, currentRealizedComp: actualAnnualCash + vestedEquityValue / yearsEmployed,
-        currentPrice, currentPriceOriginal: originalPrice, currency, yearsEmployed, calcDate, exchangeRate: storedExchangeRate,
-        targetEquityText, actualEquityText, periodText, bonusMonthsColor: parseFloat(actualBonusMonths) >= parseFloat(targetBonusMonths) ? '#4167B1' : '#FF6090',
-        bonusComparison, targetBonusMonths, actualBonusMonths
-    };
-}
 
         function findClosestPrice(priceHistory, targetDate) {
             const target = new Date(targetDate);
@@ -2835,7 +2903,7 @@
                                         <td><span style="color: #4167B1;">${amountPrefix}${g.amount.toLocaleString()}${amountSuffix}</span></td>
                                         <td>${g.vesting}</td>
                                         <td class="highlight-green"><span style="color: #4167B1;">${amountPrefix}${perYear.toLocaleString()}${amountSuffix}</span></td>
-                                        <td>¥${formatAmount(grantPriceCNY)}<br><span style="font-size: 10px; color: #999;">(${formatAmount(g.priceOriginal)} ${g.grantPriceCurrency || g.currency})</span></td>
+                                        <td>¥${formatAmount(grantPriceCNY)}<br><span style="font-size: 10px; color: #999;">(${formatAmount(g.priceOriginal)} ${g.currency})</span></td>
                                         <td class="highlight-red">
                                             <div style="font-weight: 600;">¥${formatAmount(perYearValue)}</div>
                                             <div style="font-size: 10px; color: #666; margin-top: 3px; line-height: 1.5;">
@@ -2849,7 +2917,7 @@
                                                         if (g.currency === 'CNY') {
                                                             lines.push(`当前股价: ¥${formatAmount(g.currentPriceOriginal)}`);
                                                         } else {
-                                                            lines.push(`当前股价: ${formatAmount(g.currentPriceOriginal)} ${g.currency} × ${g.exchangeRate} = ¥${formatAmount(grantCurrentPrice)}`);
+                                                            lines.push(`当前股价: ${formatAmount(g.currentPriceOriginal)} ${g.currency} × ${g.exchangeRate.toFixed(4)} = ¥${formatAmount(grantCurrentPrice)}`);
                                                         }
 
                                                         // 行权价转换
@@ -2857,7 +2925,7 @@
                                                             if (g.grantPriceCurrency === 'CNY') {
                                                                 lines.push(`行权价: ¥${formatAmount(g.priceOriginal)}`);
                                                             } else {
-                                                                lines.push(`行权价: ${formatAmount(g.priceOriginal)} ${g.grantPriceCurrency} × ${g.grantPriceRate} = ¥${formatAmount(grantPriceCNY)}`);
+                                                                lines.push(`行权价: ${formatAmount(g.priceOriginal)} ${g.grantPriceCurrency} × ${g.grantPriceRate.toFixed(4)} = ¥${formatAmount(grantPriceCNY)}`);
                                                             }
                                                         }
 
@@ -2866,15 +2934,6 @@
 
                                                         // 单期价值
                                                         lines.push(`单期价值: ${perYear.toLocaleString()}股 × ¥${formatAmount(gainPerShare)} = ¥${formatAmount(perYearValue)}`);
-
-                                                        // 数据一致性检查
-                                                        const expectedCNY = g.currentPriceOriginal * g.exchangeRate;
-                                                        const actualCNY = grantCurrentPrice;
-                                                        const diff = Math.abs(expectedCNY - actualCNY);
-                                                        if (diff > 0.01) {
-                                                            lines.push(`⚠️ 数据异常: 预期¥${expectedCNY.toFixed(2)} ≠ 实际¥${actualCNY.toFixed(2)}`);
-                                                            console.error(`[数据一致性检查失败] 授予${g.date}: ${g.currentPriceOriginal} × ${g.exchangeRate} = ${expectedCNY.toFixed(2)}, 但实际为 ${actualCNY.toFixed(2)}`);
-                                                        }
 
                                                         return lines.join('<br>');
                                                     })()
@@ -2901,8 +2960,7 @@
 
                     <div style="padding: 10px; background: #F5FAFD; border-radius: 8px; margin: 15px 0; font-size: 11px; color: #666; text-align: center;">
                         💡 颜色说明：<span style="color: #1B1F23; font-weight: 600;">浅蓝色</span> = 参与计算年份 ｜ <span style="color: #999; font-weight: 600;">灰色</span> = 不参与计算年份<br>
-                        📊 单期价值计算：先将原币股价和行权价转换为人民币（使用当月固定汇率），再计算单股收益，最后乘以单期股数<br>
-                        🔍 每笔授予的"单期价值"列显示完整计算过程，包括汇率转换步骤和数据一致性检查
+                        📊 单期价值 = 单期股数 × (股价均值 - 行权价)，负数表示相对授予时亏损
                     </div>
 
                     ${(() => {
@@ -2995,6 +3053,18 @@
                             // 获取该年的股价（原始货币）
                             let priceOriginal = 0;
 
+                            // 辅助函数：获取汇率
+                            const rates = window.exchangeRates;
+                            if (!rates || !rates.USD_CNY || !rates.HKD_CNY) {
+                                console.error('❌ 汇率未初始化，无法绘制轨迹图');
+                                return;
+                            }
+                            const getRate = (currency) => {
+                                if (currency === 'USD') return rates.USD_CNY;
+                                if (currency === 'HKD') return rates.HKD_CNY;
+                                return 1;
+                            };
+
                             // 查找历史价格数据
                             if (company.yearlyAvgPrice) {
                                 const historicalData = company.yearlyAvgPrice.find(item => item.year === year.year);
@@ -3003,26 +3073,9 @@
                                     if (historicalData.currency === priceCurrency) {
                                         priceOriginal = historicalData.price;
                                     } else {
-                                        // 需要转换货币 - 统一使用动态汇率
-                                        let historicalRate, targetRate;
-                                        if (historicalData.currency === 'USD') {
-                                            historicalRate = exchangeRates.USD_CNY;
-                                        } else if (historicalData.currency === 'HKD') {
-                                            historicalRate = exchangeRates.HKD_CNY;
-                                        } else {
-                                            historicalRate = 1;
-                                        }
-
-                                        if (priceCurrency === 'USD') {
-                                            targetRate = exchangeRates.USD_CNY;
-                                        } else if (priceCurrency === 'HKD') {
-                                            targetRate = exchangeRates.HKD_CNY;
-                                        } else {
-                                            targetRate = 1;
-                                        }
-
-                                        const priceCNY = historicalData.price * historicalRate;
-                                        priceOriginal = priceCNY / targetRate;
+                                        // 需要转换货币
+                                        const priceCNY = historicalData.price * getRate(historicalData.currency);
+                                        priceOriginal = priceCNY / getRate(priceCurrency);
                                     }
                                 }
                             }
@@ -3031,16 +3084,7 @@
                             if (priceOriginal === 0) {
                                 grants.forEach(g => {
                                     if (g.type === 'lti' || typeof g.currentPriceCNY === 'undefined' || g.currentPriceCNY === null) return;
-                                    // 统一使用全局汇率
-                                    let targetRate;
-                                    if (priceCurrency === 'USD') {
-                                        targetRate = exchangeRates.USD_CNY;
-                                    } else if (priceCurrency === 'HKD') {
-                                        targetRate = exchangeRates.HKD_CNY;
-                                    } else {
-                                        targetRate = 1;
-                                    }
-                                    priceOriginal = g.currentPriceCNY / targetRate;
+                                    priceOriginal = g.currentPriceCNY / getRate(priceCurrency);
                                 });
                             }
 
@@ -3094,7 +3138,7 @@
                         return `
                             <h3 style="margin-bottom: 3px; margin-top: 15px;">📊 人选价值轨迹图</h3>
                             <div class="chart-container" style="background: white; padding: 15px 20px; border-radius: 12px; margin: 0;">
-                                <svg viewBox="0 0 ${chartWidth} ${chartHeight}" preserveAspectRatio="xMidYMid meet" style="width: 100%; height: auto; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Arial', sans-serif;">
+                                <svg viewBox="0 0 ${chartWidth} ${chartHeight}" preserveAspectRatio="xMidYMid meet" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Arial', sans-serif;">
                                     <!-- 背景网格（仅Y轴方向） -->
                                     ${leftYTicks.map(tick => {
                                         const y = padding.top + plotHeight - (tick / maxTotalRounded) * plotHeight;
