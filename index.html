@@ -2900,8 +2900,19 @@
                                         <td><span style="color: #4167B1;">${amountPrefix}${g.amount.toLocaleString()}${amountSuffix}</span></td>
                                         <td>${g.vesting}</td>
                                         <td class="highlight-green"><span style="color: #4167B1;">${amountPrefix}${perYear.toLocaleString()}${amountSuffix}</span></td>
-                                        <td>¥${formatAmount(grantPriceCNY)}<br><span style="font-size: 10px; color: #999;">(${formatAmount(g.priceOriginal)} ${g.currency})</span></td>
-                                        <td class="highlight-red">¥${formatAmount(perYearValue)}</td>
+                                        <td>¥${formatAmount(grantPriceCNY)}<br><span style="font-size: 10px; color: #999;">(${formatAmount(g.priceOriginal)} ${g.grantPriceCurrency || g.currency})</span></td>
+                                        <td class="highlight-red">
+                                            <div style="font-weight: 600;">¥${formatAmount(perYearValue)}</div>
+                                            <div style="font-size: 10px; color: #666; margin-top: 3px; line-height: 1.4;">
+                                                ${isLTI ?
+                                                    `= ¥${perYear.toLocaleString()} / ${g.vesting}年` :
+                                                    `${perYear.toLocaleString()}股 × (¥${formatAmount(grantCurrentPrice)} - ¥${formatAmount(grantPriceCNY)})<br>= ${perYear.toLocaleString()} × ¥${formatAmount(gainPerShare)}`
+                                                }
+                                            </div>
+                                            <div style="font-size: 9px; color: #999; margin-top: 2px;">
+                                                ${isLTI ? '' : `股价: ${formatAmount(g.currentPriceOriginal)} ${g.currency}`}
+                                            </div>
+                                        </td>
                                         ${years.map((year, idx) => {
                                             const amount = vestingSchedules[gIdx][year] || '';
                                             const isCounted = countedYears.has(year);
